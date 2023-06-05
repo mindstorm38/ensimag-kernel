@@ -1,5 +1,6 @@
 #include "debugger.h"
 #include "stdio.h"
+#include "time.h"
 #include "cpu.h"
 #include "cga.h"
 
@@ -12,6 +13,10 @@ static int fact(int n) {
 }
 
 void kernel_start(void) {
+
+	cli();
+	time_start();
+	sti();
 
 	printf("\fKernel starting...\n");
 

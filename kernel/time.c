@@ -5,10 +5,9 @@
 #include "cpu.h"
 #include "cga.h"
 
-
-#define TIME_CMD 0x43
+#define TIME_CMD 0x0043
 #define TIME_CMD_FREQ 0x34
-#define TIME_DATA 0x40
+#define TIME_DATA 0x0040
 
 #define QUARTZ 0x1234DD
 #define CLOCKFREQ 50
@@ -103,13 +102,13 @@ void time_start(void) {
 
     set_pit_frequency();
     // interrupt_set_handler(32, pit_interrupt_handler);
-    interrupt_irq_mask(0, false);
+    // interrupt_irq_mask(0, false);
 
     set_cmos_frequency();
     set_cmos_interrupt();
     // interrupt_set_handler(40, rtc_interrupt_handler);
-    interrupt_irq_mask(2, false);
-    interrupt_irq_mask(8, false);
+    // interrupt_irq_mask(2, false);
+    // interrupt_irq_mask(8, false);
 
     time_update();
     time_print();

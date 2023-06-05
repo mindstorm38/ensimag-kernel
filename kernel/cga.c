@@ -3,10 +3,10 @@
 #include "cpu.h"
 #include "cga.h"
 
-#define CGA_CMD 0x3D4
-#define CGA_DATA 0x3D5
+#define CGA_CMD 0x03D4
 #define CGA_CMD_CURSOR_LO 0x0F
 #define CGA_CMD_CURSOR_HI 0x0E
+#define CGA_DATA 0x03D5
 
 
 static uint32_t lig = 0;
