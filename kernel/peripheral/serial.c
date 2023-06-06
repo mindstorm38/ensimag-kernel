@@ -1,6 +1,7 @@
+#include "serial.h"
 #include "cpu.h"
 #include "debug.h"
-#include "serial.h"
+
 
 static void init_serial(void)
 {

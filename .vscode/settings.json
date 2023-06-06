@@ -1,6 +1,3 @@
 {
-    "files.exclude": {
-        "**/out": true
-    },
     "clangd.arguments": ["--log=verbose"]
 }

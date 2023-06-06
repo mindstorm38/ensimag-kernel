@@ -1,7 +1,8 @@
 #include "interrupt.h"
-#include "segment.h"
 #include "stdbool.h"
 #include "stdio.h"
+
+#include "segment.h"
 #include "cpu.h"
 
 #define PIC_MASTER_CMD 0x20

@@ -1,9 +1,9 @@
-#include "debugger.h"
 #include "stdio.h"
-#include "time.h"
+#include "debug/debugger.h"
+#include "peripheral/time.h"
+#include "peripheral/cga.h"
+#include "process/process.h"
 #include "cpu.h"
-#include "cga.h"
-#include "process.h"
 
 
 void kernel_start(void) {

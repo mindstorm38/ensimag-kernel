@@ -1,9 +1,9 @@
 #include "processor_structs.h"
-#include "start.h"
+#include "../start.h"
 #include "string.h"
 #include "debug.h"
 #include "cpu.h"
-#include "gdb_serial_support.h"
+#include "../debug/gdb_serial_support.h"
 
 #define SZ_32           0x4                     /* 32-bit segment */
 #define SZ_16           0x0                     /* 16-bit segment */

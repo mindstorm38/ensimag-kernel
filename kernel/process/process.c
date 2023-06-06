@@ -64,6 +64,8 @@ void process_init() {
     running_process = idle;
     _idle();
 
+    processes_count = 2;
+
 }
 
 

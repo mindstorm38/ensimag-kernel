@@ -1,6 +1,6 @@
 #include "debug.h"
-#include "serial.h"
-#include "boot/processor_structs.h"
+#include "../peripheral/serial.h"
+#include "../boot/processor_structs.h"
 #include "gdb_serial_support.h"
 #include "cpu.h"
 #include "string.h"
