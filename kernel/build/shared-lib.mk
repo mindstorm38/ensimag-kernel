@@ -26,7 +26,7 @@ endif
 endif
 
 ifndef SHARED_LIB_DIR
-	$(error Sourcet directory undefined \(SHARED_LIB_DIR undefined\).)
+	$(error Source directory undefined \(SHARED_LIB_DIR undefined\).)
 else
 ifeq ("$(SHARED_LIB_DIR)", "")
 	$(error Source directory undefined \(SHARED_LIB_DIR is empty\).)

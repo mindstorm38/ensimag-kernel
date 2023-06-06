@@ -3,14 +3,8 @@
 #include "time.h"
 #include "cpu.h"
 #include "cga.h"
+#include "process.h"
 
-
-static int fact(int n) {
-	if (n < 2)
-		return 1;
-
-	return n * fact(n-1);
-}
 
 void kernel_start(void) {
 
@@ -20,16 +14,9 @@ void kernel_start(void) {
 
 	printf("\fKernel starting...\n");
 
-	int i;
-	// call_debugger(); useless with qemu -s -S
+	process_init();
 
-	i = 10;
-
-	i = fact(i);
-
-	printf("fact(10) = %d\n", i);
-
-	while(1)
+	while (1)
 	  hlt();
 
 	return;

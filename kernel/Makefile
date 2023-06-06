@@ -72,9 +72,9 @@ SHARED_LIB_DIR := ../shared
 include build/shared-lib.mk
 
 
-### Linux keyboard support build ###
-KBD_LINUX_DIR := kbd-linux
-include build/kbd-linux.mk
+# ### Linux keyboard support build ###
+# KBD_LINUX_DIR := kbd-linux
+# include build/kbd-linux.mk
 
 ### User lib build ###
 .PHONY: $(OUTPUT)/userdata.o
