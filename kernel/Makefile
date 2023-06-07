@@ -18,6 +18,7 @@ CFLAGS := -m32 \
 		  -nostdlib \
 		  -fno-stack-protector \
 		  -fno-pie -no-pie \
+		  -mgeneral-regs-only \
 		  -march=pentium \
 		  $(DEFS)
 ASFLAGS := -m32 -g\

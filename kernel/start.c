@@ -2,7 +2,7 @@
 
 #include "process.h"
 #include "memory.h"
-#include "time.h"
+#include "clock.h"
 #include "cga.h"
 #include "cpu.h"
 
@@ -14,14 +14,13 @@ int proc1(void *arg);
 
 void kernel_start(void) {
 
-	// cli();
-	// time_start();
-	// sti();
-
+	cli();
 	printf("\fKernel starting...\n");
 	page_init();
+	clock_init();
+	sti();
 
-	process_idle(idle, 512, NULL);
+	// process_idle(idle, 512, NULL);
 
 	while (1)
 	  hlt();

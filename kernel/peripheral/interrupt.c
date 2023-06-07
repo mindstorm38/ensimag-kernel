@@ -4,6 +4,8 @@
 #include "interrupt.h"
 #include "segment.h"
 #include "cpu.h"
+#include <stddef.h>
+#include <stdint.h>
 
 #define PIC_MASTER_CMD 0x20
 #define PIC_MASTER_MASK 0x21
@@ -12,21 +14,41 @@
 #define PIC_SLAVE_MASK 0xA1
 
 
-void interrupt_set_handler(uint8_t n, interrupt_handler_t handler) {
-    uint32_t handle_ptr = (uint32_t) handler;
-    uint32_t *entry = (uint32_t *) (0x1000 + n * 8);
-    entry[0] = (KERNEL_CS << 16) | (handle_ptr & 0xFFFF);
-    entry[1] = (handle_ptr & 0xFFFF0000) | 0x8E00;
+/// Raw function to set an interrupt handler at a particular index in
+/// the Interrupt Descriptor Table.
+///
+/// Important to note that the index in the IDT is not related at all
+/// with the IRQ number.
+void idt_configure(uint8_t index, uint32_t handler_addr) {
+    uint32_t *entry = ((uint32_t *) 0x1000) + index * 2;
+    entry[0] = (KERNEL_CS << 16) | (handler_addr & 0xFFFF);
+    entry[1] = (handler_addr & 0xFFFF0000) | 0x8E00;
 }
 
-void interrupt_eoi(uint8_t n) {
+
+/// This array is defined in assembly.
+extern uint32_t irq_handlers_entry[16];
+/// This array is exported to the assembly.
+static irq_handler_t irq_handlers[16];
+
+/// Called from assembly.
+void irq_generic_handler(uint8_t n) {
+    irq_handlers[n]();
+}
+
+void irq_set_handler(uint8_t n, irq_handler_t handler) {
+    idt_configure(32 + n, irq_handlers_entry[n]);
+    irq_handlers[n] = handler;
+}
+
+void irq_eoi(uint8_t n) {
     outb(0x20, PIC_MASTER_CMD);
     if (n >= 8) {
         outb(0x20, PIC_SLAVE_CMD);
     }
 }
 
-void interrupt_irq_mask(uint8_t n, bool masked) {
+void irq_mask(uint8_t n, bool masked) {
     bool master = n < 8;
     uint8_t mask_port = master ? PIC_MASTER_MASK : PIC_SLAVE_MASK;
     uint8_t current_mask = inb(mask_port);

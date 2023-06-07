@@ -116,7 +116,6 @@ void process_exit(int code) {
     running_process->exit_code = code;
     process_internal_exit();
     while(1);
-
 }
 
 int32_t process_pid(void) {
