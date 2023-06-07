@@ -1,5 +1,8 @@
 /// Internal functions for the kernel memory allocator.
 
+#ifndef __MEM_INTERNALS_H__
+#define __MEM_INTERNALS_H__
+
 #include "stdbool.h"
 #include "stdint.h"
 #include "stddef.h"
@@ -52,3 +55,5 @@ void *kalloc_large(size_t size);
 void kfree_small(struct mem_alloc a);
 void kfree_medium(struct mem_alloc a);
 void kfree_large(struct mem_alloc a);
+
+#endif

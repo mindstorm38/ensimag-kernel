@@ -1,8 +1,12 @@
 /// Kernel memory allocation.
 
+#ifndef __MEMORY_H__
+#define __MEMORY_H__
+
 #include "stddef.h"
 
 #define PAGE_SIZE 4096
+
 
 /// Initialize the memory allocation system of the kernel. This must
 /// be called once on startup, before everything.
@@ -16,5 +20,9 @@ void page_free(void *ptr, size_t size);
 /// Get the current allocation count.
 size_t page_alloc_count();
 
+// TODO: Alignment guarantees.
 void *kalloc(size_t size);
+/// Free a pointer allocated with 'kalloc'.
 void kfree(void *ptr);
+
+#endif

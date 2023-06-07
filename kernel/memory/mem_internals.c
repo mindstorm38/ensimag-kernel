@@ -6,7 +6,6 @@
 
 #include "stdint.h"
 #include "stddef.h"
-#include "stdio.h"
 
 #include "memory.h"
 #include "mem_internals.h"
@@ -83,11 +82,9 @@ size_t mem_realloc_small() {
 size_t mem_realloc_medium() {
 
     uint32_t exp = FIRST_ALLOC_MEDIUM_EXPOSANT + arena.medium_next_exponant;
-    printf("exp: %d\n", exp);
 
     // assert(arena.tzl[exp] == 0);
     size_t size = (FIRST_ALLOC_MEDIUM << arena.medium_next_exponant);
-    printf("size: %d\n", size);
     // assert(size == (1UL << exp));
 
     // Twice the size for alignment.

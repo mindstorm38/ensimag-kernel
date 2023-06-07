@@ -70,8 +70,6 @@ void *page_alloc(size_t size) {
 
     // assert(count > 0);
 
-    printf("page_alloc(%d)\n", size);
-
     size_t count = page_count_padded(size);
 
     // Compute the index/bit of the first non-meta page.

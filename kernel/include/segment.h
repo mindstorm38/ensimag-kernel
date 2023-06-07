@@ -1,10 +1,4 @@
-/*
- * segment.h
- *
- * Copyright (C) 2003 by Simon Nieuviarts
- *
- * Segment selectors.
- */
+/// Segment selectors constants.
 
 #ifndef __SEGMENT_H__
 #define __SEGMENT_H__
