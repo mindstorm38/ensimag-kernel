@@ -10,7 +10,6 @@
 
 
 typedef int32_t pid_t;
-typedef int32_t exit_code_t;
 
 /// States that a process can take, used for scheduling.
 enum process_state {
@@ -40,10 +39,6 @@ struct process_stack {
 
 /// The process structure.
 struct process {
-    /// Process id, its index in the internal process queue.
-    pid_t pid;
-    /// Scheduling priority.
-    uint16_t priority;
     /// Name of the process.
     char name[PROCESS_NAME_MAX_SIZE];
     /// Previous process that will schedule this process.
@@ -55,11 +50,18 @@ struct process {
     /// Context saving registers that will be restored on context switch.
     struct process_context context;
     /// The process' stack.
-    char *stack; 
+    char *stack;
+    /// Process id, its index in the internal process queue.
+    pid_t pid;
+    /// Scheduling priority.
+    int priority;
+    /// Valid when the process is a zombie, it's used for returning
+    /// the exit code to the parent that waits for it.
+    int exit_code;
 };
 
 /// Type alias for process entry point.
-typedef exit_code_t (*process_entry_t)(void *);
+typedef int (*process_entry_t)(void *);
 
 /// Startup function that starts the first process. It should be 
 /// called only once at kernel startup, this process can then starts
@@ -68,7 +70,7 @@ void process_idle(process_entry_t entry, size_t stack_size, void *arg);
 /// Start a process.
 pid_t process_start(process_entry_t entry, size_t stack_size, const char *name, void *arg);
 /// Exit from the current process.
-void process_exit(void);
+void process_exit(int code) __attribute__((noreturn));
 /// Get PID of the current process.
 pid_t process_pid(void);
 /// Get name of the current process.

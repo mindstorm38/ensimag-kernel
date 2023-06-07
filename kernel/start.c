@@ -9,8 +9,8 @@
 #include "stdio.h"
 
 
-exit_code_t idle(void *arg);
-exit_code_t proc1(void *arg);
+int idle(void *arg);
+int proc1(void *arg);
 
 void kernel_start(void) {
 
@@ -31,7 +31,7 @@ void kernel_start(void) {
 }
 
 
-exit_code_t idle(void *arg) {
+int idle(void *arg) {
 
 	(void) arg;
 
@@ -47,14 +47,8 @@ exit_code_t idle(void *arg) {
 
 }
 
-exit_code_t proc1(void *arg) {
-
+int proc1(void *arg) {
 	(void) arg;
-
-	for (;;) {
-		printf("[%s] pid = %i\n", process_name(), process_pid());
-		for (int32_t i = 0; i < 100000000; i++);
-		schedule();
-	}
-
+	printf("[%s] pid = %i\n", process_name(), process_pid());
+	return 0;
 }
