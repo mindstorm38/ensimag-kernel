@@ -1,2 +1,2 @@
 CompileFlags:
-  Add: [-m32, -march=pentium, -nostdinc, -nostdlib, -I../shared]
+  Add: [-m32, -march=pentium, -nostdinc, -nostdlib, -Iinclude, -I../include, -Ishared, -I../shared]

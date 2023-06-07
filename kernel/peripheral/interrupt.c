@@ -1,7 +1,7 @@
-#include "interrupt.h"
 #include "stdbool.h"
 #include "stdio.h"
 
+#include "interrupt.h"
 #include "segment.h"
 #include "cpu.h"
 

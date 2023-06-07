@@ -1,8 +1,8 @@
-#include "stdio.h"
 #include "debug/debugger.h"
-#include "peripheral/time.h"
-#include "peripheral/cga.h"
-#include "process/process.h"
+#include "stdio.h"
+#include "process.h"
+#include "time.h"
+#include "cga.h"
 #include "cpu.h"
 
 

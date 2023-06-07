@@ -39,7 +39,7 @@ static void cursor_pos(uint32_t line, uint32_t column) {
 /// Clear the screen.
 static void screen_clear(void) {
     uint8_t *ptr = (uint8_t *) 0xB8000;
-    while (ptr < (uint8_t *) (0xB8000 + (CONSOLE_COLS * CONSOLE_ROWS * 2))) {
+    while (ptr < (uint8_t *) (0xB8000 + (CGA_COLS * CGA_ROWS * 2))) {
         *ptr = ' ';
         ptr++;
         *ptr = 0b00001111;
@@ -81,12 +81,12 @@ static void char_write_formatted(char c) {
         col = 0;
     }
 
-    if (col >= CONSOLE_COLS) {
+    if (col >= CGA_COLS) {
         col = 0;
         lig++;
     }
 
-    while (lig >= (CONSOLE_ROWS - 1)) {
+    while (lig >= (CGA_ROWS - 1)) {
         scroll_down();
         lig--;
     }

@@ -4,6 +4,7 @@
 #include "stdbool.h"
 #include "stdint.h"
 
+
 typedef __attribute__((interrupt)) void (*interrupt_handler_t)(void*);
 
 /// Set handle for a given interrupt (up to 256 handlers).

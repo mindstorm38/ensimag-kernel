@@ -3,9 +3,8 @@
 
 #include "stdint.h"
 
-
-#define CONSOLE_COLS 80
-#define CONSOLE_ROWS 25
+#define CGA_COLS 80
+#define CGA_ROWS 25
 
 
 /// Colors available for foreground or background.
