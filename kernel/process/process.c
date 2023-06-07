@@ -30,6 +30,10 @@ char *get_name() {
     return running_process->name;
 }
 
+// int32_t process_start(int32_t (*func)(void *), size_t stack_size, const char *name, void *arg) {
+    
+// }
+
 void schedule() {
 
     int32_t pid = running_process->pid;
@@ -70,19 +74,19 @@ void process_init() {
 
 
 void _idle(void) {
-  for (;;) {
-    printf("[%s] pid = %i\n", get_name(), get_pid());
-    for (int32_t i = 0; i < 100000000; i++)
-      ;
-    schedule();
-  }
+for (;;) {
+printf("[%s] pid = %i\n", get_name(), get_pid());
+for (int32_t i = 0; i < 100000000; i++)
+;
+schedule();
+}
 }
 
 void _proc1(void) {
-  for (;;) {
-    printf("[%s] pid = %i\n", get_name(), get_pid());
-    for (int32_t i = 0; i < 100000000; i++)
-      ;
-    schedule();
-  }
+for (;;) {
+printf("[%s] pid = %i\n", get_name(), get_pid());
+for (int32_t i = 0; i < 100000000; i++)
+;
+schedule();
+}
 }
