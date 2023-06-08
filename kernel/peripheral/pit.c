@@ -1,10 +1,6 @@
-#include "stdint.h"
-
 #include "interrupt.h"
 #include "pit.h"
 #include "cpu.h"
-
-#include "stdio.h"
 
 
 #define PIT_CHAN0_DATA  0x0040
@@ -17,11 +13,15 @@
 
 // 1.193181 MHz
 #define PIT_QUARTZ_FREQ 0x1234DD
-#define PIT_CONF_FREQ   50
+#define PIT_FREQ        50
+#define PIT_INTERVAL    ((uint16_t) ((int) (PIT_QUARTZ_FREQ) / (PIT_FREQ)))
+
+
+static uint32_t clock = 0;
 
 
 static void pit_set_frequency(void) {
-    uint16_t freq_value = (uint16_t) ((int) PIT_QUARTZ_FREQ / PIT_CONF_FREQ);
+    const uint16_t freq_value = PIT_INTERVAL;
     cli();
     outb(PIT_CMD_FREQ, PIT_CMD);
     outb(freq_value & 0xFF, PIT_CHAN0_DATA);
@@ -31,6 +31,7 @@ static void pit_set_frequency(void) {
 
 static void pit_interrupt_handler(void) {
     irq_eoi(0);
+    clock++;
 }
 
 void pit_init(void) {
@@ -39,4 +40,13 @@ void pit_init(void) {
     irq_set_handler(0, pit_interrupt_handler);
     irq_mask(0, false);
 
+}
+
+uint32_t pit_clock() {
+    return clock;
+}
+
+void pit_clock_settings(uint32_t *quartz_freq, uint32_t *ticks) {
+    *quartz_freq = PIT_FREQ;
+    *ticks = PIT_INTERVAL;
 }
