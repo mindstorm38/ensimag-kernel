@@ -50,7 +50,6 @@ $(OUTPUT)/%.c.d: %.c
 
 $(OUTPUT)/%.S.d: %.S
 	mkdir -p $(@D)
-	$(DEP) -MM -MD -o $@ $< 
 	$(DEP) $(INCSFLAGS) -MT $(OUTPUT)/$<.o -MM $< -MF $@
 
 # Compile rule
