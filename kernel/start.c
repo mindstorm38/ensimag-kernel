@@ -6,6 +6,7 @@
 #include "cpu.h"
 #include "rtc.h"
 #include "pit.h"
+#include "cmos.h"
 
 #include "stdio.h"
 
@@ -19,6 +20,9 @@ void kernel_start(void) {
 	page_init();
 	rtc_init();
 	pit_init();
+
+	sti();
+	// printf("eflags: %lu\n", save_flags());
 
 	process_idle(idle, 512, NULL);
 
@@ -34,12 +38,11 @@ int idle(void *arg) {
 
 	(void) arg;
 
-	process_start(proc1, 512, 1, "proc1", NULL);
+	process_start(proc1, 512, 0, "proc1", NULL);
+	process_start(proc1, 512, 0, "proc2", NULL);
 
 	for (;;) {
-		printf("[%s] pid = %i\n", process_name(), process_pid());
-		for (int32_t i = 0; i < 100000000; i++);
-		schedule();
+		printf("[%s]\n", process_name());
 	}
 
 	return 0;
@@ -48,6 +51,8 @@ int idle(void *arg) {
 
 int proc1(void *arg) {
 	(void) arg;
-	printf("[%s] pid = %i\n", process_name(), process_pid());
+	for (;;) {
+		printf("[%s]\n", process_name());
+	}
 	return 0;
 }

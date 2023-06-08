@@ -4,137 +4,32 @@
 #include "string.h"
 #include "stdio.h"
 
-#include "process.h"
+#include "process_internals.h"
 #include "memory.h"
 #include "cpu.h"
-#include <stdio.h>
+#include "pit.h"
 
 
-static struct process *process_sched_rings[PROCESS_MAX_PRIORITY];
-static struct process *running_process;
 static pid_t pid_counter = 0;
 
 // This context is never used at restoration.
 static struct process_context dummy_context;
 
 
-/// Function defined in assembly (process_context.S).
-void process_context_switch(struct process_context *prev_ctx, struct process_context *next_ctx);
-
-/// Internal function used to insert a process in its scheduler ring.
-static void process_sched_ring_insert(struct process *process) {
-
-    // Get the first process in this ring.
-    struct process *first_process = process_sched_rings[process->priority];
-    
-    if (first_process) {
-        process->sched_next = first_process;
-        process->sched_prev = first_process->sched_prev;
-        first_process->sched_prev = process;
-    } else {
-        // It's the first process, it has its own ring.
-        process->sched_next = process;
-        process->sched_prev = process;
-    }
-
-    process_sched_rings[process->priority] = process;
-
-}
-
-/// Internal function used to remove a process from its scheduler ring.
-/// Returns the next process after the removed one, might be null if
-/// the ring is now empty.
-static struct process *process_sched_ring_remove(struct process *process) {
-
-    // Remove the running process from its own ring.
-    struct process *prev_process = process->sched_prev;
-    struct process *next_process = process->sched_next;
-
-    // If the process is it's own next process, it means that it was
-    // alone in its ring. So we set all to NULL.
-    if (next_process == process) {
-        next_process = NULL;
-        prev_process = NULL;
-    } else {
-        prev_process->sched_next = next_process;
-        next_process->sched_prev = prev_process;
-    }
-
-    // First process of the ring.
-    struct process **first_process_ptr = &process_sched_rings[process->priority];
-    if (*first_process_ptr == process) {
-        *first_process_ptr = next_process;
-    }
-
-    return next_process;
-
-}
-
-/// Internal function used to find a non-null schedule ring up to
-/// and excluding the given priority. This should not return null
-/// since at least ring 0 should contain idle process.
-static struct process *process_sched_ring_find(int max_priority) {
-
-    for (int priority = max_priority - 1; priority >= 0; priority--) {
-        if (process_sched_rings[priority]) {
-            return process_sched_rings[priority];
-        }
-    }
-
-    // Should not happen, TODO: panic?
-    return NULL;
-
-}
-
-/// Internal function called from timer interrupt routine.
-/// It's responsible for scheduling the next process to run.
-/// 
-/// The caller must set 'running_process' state manually before 
-/// calling this function, because the scheduling can vary depending
-/// on its source (preemptive timer, I/O, etc.).
-/// 
-/// Next process can optionally be specified, this is compatible with
-/// ring remove. If both are true/non-null then the function don't try 
-/// to find a lower-priority ring.
-static void process_schedule(bool ring_remove, struct process *init_next_process) {
-
-    struct process *prev_process = running_process;
-    struct process *next_process = init_next_process;
-
-    // Start by removed the process from the ring.
-    if (ring_remove) {
-
-        struct process *new_next_process = process_sched_ring_remove(prev_process);
-        
-        // Next process is not forced.
-        if (next_process == NULL) {
-            next_process = new_next_process;
-            // The current ring is empty, find a lower-priority ring.
-            if (next_process == NULL) {
-                next_process = process_sched_ring_find(prev_process->priority);
-            }
-        }
-
-    } else if (next_process == NULL) {
-        next_process = prev_process->sched_next;
-    }
-
-    running_process = next_process;
-    running_process->state = PROCESS_ACTIVE;
-
-    process_context_switch(&prev_process->context, &next_process->context);
-
-}
-
-/// Internal function that actually exits.  We then schedule the next 
-/// process.
+/// Internal function that actually exits and schedule next process.
+__attribute__((noreturn))
 static void process_internal_exit(void) {
+
+    cli();
 
     // TODO: Free stack/process? Maybe in waitpid...
 
     // Process is zombie until waited for by parent.
-    running_process->state = PROCESS_ZOMBIE;
-    process_schedule(true, NULL);
+    process_active->state = PROCESS_ZOMBIE;
+    process_sched_advance(NULL, true);
+
+    // Never reached.
+    while (1);
 
 }
 
@@ -144,8 +39,19 @@ static void process_internal_exit(void) {
 /// process' exit code before actually exiting.
 static void process_implicit_exit(void) {
     // We need to ensure that eax is not overwritten by the prelude.
-	__asm__ __volatile__("mov %%eax, %0" : "=r" (running_process->exit_code) :: "eax");
+    // EAX set in clobbers so it's not overwritten while doing this.
+	__asm__ __volatile__("mov %%eax, %0" : "=r" (process_active->exit_code) :: "eax");
     process_internal_exit();
+}
+
+/// Internal function that handle pit interrupts.
+static void process_pit_handler(uint32_t clock) {
+    
+    (void) clock;
+
+    // This function re-enable interrupts before switching.
+    process_sched_advance(NULL, false);
+
 }
 
 /// Internal function that allocate a process given
@@ -153,7 +59,14 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, c
 
     // TODO: Check allocation errors.
     struct process *process = kalloc(sizeof(struct process));
+    if (process == NULL)
+        return NULL;
+
     void *stack = kalloc(stack_size);
+    if (stack == NULL) {
+        kfree(stack);
+        return NULL;
+    }
 
     // Initialize stack...
     process->stack = stack;
@@ -177,24 +90,27 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, c
 
 void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     
-    running_process = process_alloc(entry, stack_size, "idle", arg);
+    // Disable interrupts until process_context_switch which call sti.
+    cli();
+
+    process_active = process_alloc(entry, stack_size, "idle", arg);
 
     // No parent/child.
-    running_process->parent = NULL;
-    running_process->child = NULL;
-    running_process->sibling = NULL;
+    process_active->parent = NULL;
+    process_active->child = NULL;
+    process_active->sibling = NULL;
 
     // Insert process in right scheduler ring.
-    running_process->priority = 0;
-    process_sched_ring_insert(running_process);
+    process_active->priority = 0;
+    process_sched_ring_insert(process_active);
 
-    // TODO: Start preemptive scheduler.
-    // [...]
+    // Start preemptive scheduler.
+    pit_set_handler(process_pit_handler);
 
-    // Switch to the next process while throwing the dummy context,
-    // because we'll never return to the kernel's execution.
-    running_process->state = PROCESS_ACTIVE;
-    process_context_switch(&dummy_context, &running_process->context);
+    // Manually switch to the idle process context.
+    process_active->state = PROCESS_ACTIVE;
+    sti();
+    process_context_switch(&dummy_context, &process_active->context);
 
 }
 
@@ -203,14 +119,16 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     // assert(running_process)
     // assert(priority < MAX_PRIO)
 
+    cli();
+
     struct process *process = process_alloc(entry, stack_size, name, arg);
 
-    process->parent = running_process;
+    process->parent = process_active;
     process->child = NULL;
 
     // Insert the next process in the child linked list of the parent.
-    process->sibling = running_process->child;
-    running_process->child = process;
+    process->sibling = process_active->child;
+    process_active->child = process;
 
     // Insert in the right scheduler ring.
     process->priority = priority;
@@ -219,8 +137,11 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     // If the new priority is higher than the current, we directly
     // interrupt the execution of the current process and switch to
     // this scheduler ring.
-    if (process->priority > running_process->priority) {
-        process_schedule(false, process);
+    if (process->priority > process_active->priority) {
+        process_sched_advance(process, false);
+    } else {
+        // The advance function re-enable interrupts.
+        sti();
     }
 
     return process->pid;
@@ -228,20 +149,64 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
 }
 
 void process_exit(int code) {
-    running_process->exit_code = code;
+    process_active->exit_code = code;
     process_internal_exit();
-    while(1);
 }
 
 int32_t process_pid(void) {
-    return running_process->pid;
+    return process_active->pid;
 }
 
 char *process_name(void) {
-    return running_process->name;
+    return process_active->name;
 }
 
-// TODO: Remove this as it's cooperative multi-tasking and will not be relevant soon.
-void schedule() {
-    process_schedule(false, NULL);
+void process_wait(uint32_t clock) {
+
+    (void) clock;
+
+    // process_active->state = PROCESS_WAIT_TIME;
+    // // TODO: Add the running process to a queue of time.
+    // process_sched_advance(NULL, true);
+
+}
+
+int process_priority(pid_t pid) {
+    (void) pid;
+    return pid;
+}
+
+void process_set_priority(pid_t pid, int priority) {
+    (void) pid;
+    (void) priority;
+}
+
+
+void process_debug(void) {
+
+    cli();
+
+    printf("process %p\n", process_active);
+    printf("- %s (%d)\n", process_active->name, process_active->pid);
+
+    if (process_active->sched_prev)
+        printf("- sched_prev: %s (%d)\n", process_active->sched_prev->name, process_active->sched_prev->pid);
+    if (process_active->sched_next)
+        printf("- sched_next: %s (%d)\n", process_active->sched_next->name, process_active->sched_next->pid);
+
+    if (process_active->parent)
+        printf("- parent: %s (%d)\n", process_active->parent->name, process_active->parent->pid);
+
+    printf("- children:");
+    struct process *child = process_active->child;
+    while (child) {
+        printf(" %s (%d)", child->name, child->pid);
+        child = child->sibling;
+    }
+    printf("\n");
+
+    printf("- esp: %p\n", (void *) process_active->context.esp);
+
+    sti();
+
 }
