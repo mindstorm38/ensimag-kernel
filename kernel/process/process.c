@@ -165,13 +165,22 @@ void process_wait(uint32_t clock) {
 }
 
 int process_priority(pid_t pid) {
-    (void) pid;
-    return pid;
+
+    cli();
+    struct process *process = process_from_pid(pid);
+    sti();
+
+    if (process == NULL)
+        return -1;
+    
+    return process->priority;
+
 }
 
 void process_set_priority(pid_t pid, int priority) {
     (void) pid;
     (void) priority;
+    // TODO:
 }
 
 
