@@ -15,7 +15,7 @@
 
 // 1.193181 MHz
 #define PIT_QUARTZ_FREQ 0x1234DD
-#define PIT_FREQ        2
+#define PIT_FREQ        50
 #define PIT_INTERVAL    ((uint16_t) ((int) (PIT_QUARTZ_FREQ) / (PIT_FREQ)))
 
 

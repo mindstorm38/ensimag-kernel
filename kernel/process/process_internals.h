@@ -29,8 +29,10 @@ struct process_context {
 
 /// The process structure.
 struct process {
-    /// Name of the process.
-    char name[PROCESS_NAME_MAX_SIZE];
+    /// Previous process in the overall linked list.
+    struct process *overall_prev;
+    /// Next process in the overall linked list.
+    struct process *overall_next;
     /// Previous process in the schedule ring for the current priority.
     struct process *sched_prev;
     /// Next process in the schedule ring for the current priority.
@@ -49,6 +51,8 @@ struct process {
     char *stack;
     /// Process id, its index in the internal process queue.
     pid_t pid;
+    /// Name of the process.
+    char name[PROCESS_NAME_MAX_SIZE];
     /// Scheduling priority, from 0 to PROCESS_MAX_PRIORITY excluded.
     int priority;
     /// Valid when the process is a zombie, it's used for returning
@@ -96,5 +100,20 @@ struct process *process_sched_ring_find(int max_priority);
 /// This function may or not be called from an interrupt handler, in
 /// any case this function re-enable the interrupts before switching.
 void process_sched_advance(struct process *next_process, bool ring_remove);
+/// Internal function that handle pit interrupts.
+void process_sched_pit_handler(uint32_t clock);
+
+/// Register the process in the overall linked list.
+///
+/// Interrupts must be disabled while calling this function.
+void process_overall_add(struct process *process);
+/// Remove the process from the overall linked list.
+///
+/// Interrupts must be disabled while calling this function.
+void process_overall_remove(struct process *process);
+/// Get a process from its PID.
+///
+/// Interrupts must be disabled while calling this function.
+struct process *process_from_pid(pid_t pid);
 
 #endif

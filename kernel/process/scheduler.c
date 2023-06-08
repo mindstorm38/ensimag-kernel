@@ -106,3 +106,12 @@ void process_sched_advance(struct process *next_process, bool ring_remove) {
     }
 
 }
+
+void process_sched_pit_handler(uint32_t clock) {
+    (void) clock;
+
+    // Interruptions are not enabled here, don't need to cli.    
+    process_active->state = PROCESS_AVAILABLE;
+    process_sched_advance(NULL, false);
+
+}

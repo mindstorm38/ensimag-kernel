@@ -11,7 +11,6 @@
 
 
 static pid_t pid_counter = 0;
-
 // This context is never used at restoration.
 static struct process_context dummy_context;
 
@@ -44,18 +43,12 @@ static void process_implicit_exit(void) {
     process_internal_exit();
 }
 
-/// Internal function that handle pit interrupts.
-static void process_pit_handler(uint32_t clock) {
-    
-    (void) clock;
-
-    // This function re-enable interrupts before switching.
-    process_sched_advance(NULL, false);
-
-}
-
-/// Internal function that allocate a process given
-static struct process *process_alloc(process_entry_t entry, size_t stack_size, const char *name, void *arg) {
+/// Internal function that allocate a process given. Callers of this
+/// function ('process_idle' and 'process_start' only) need to 
+/// initialize remaining fields (parent/child/sibling/state).
+/// 
+/// Interrupts must be disabled before calling this function.
+static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg) {
 
     // TODO: Check allocation errors.
     struct process *process = kalloc(sizeof(struct process));
@@ -82,7 +75,13 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, c
     // Initialize other fields
     strcpy(process->name, name);
     process->pid = pid_counter++;
-    process->state = PROCESS_AVAILABLE;
+
+    // Overall list.
+    process_overall_add(process);
+
+    // Priority and scheduler ring.
+    process->priority = priority;
+    process_sched_ring_insert(process);
 
     return process;
 
@@ -93,22 +92,18 @@ void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     // Disable interrupts until process_context_switch which call sti.
     cli();
 
-    process_active = process_alloc(entry, stack_size, "idle", arg);
+    process_active = process_alloc(entry, stack_size, 0, "idle", arg);
+    process_active->state = PROCESS_ACTIVE;
 
     // No parent/child.
     process_active->parent = NULL;
     process_active->child = NULL;
     process_active->sibling = NULL;
 
-    // Insert process in right scheduler ring.
-    process_active->priority = 0;
-    process_sched_ring_insert(process_active);
-
     // Start preemptive scheduler.
-    pit_set_handler(process_pit_handler);
+    pit_set_handler(process_sched_pit_handler);
 
     // Manually switch to the idle process context.
-    process_active->state = PROCESS_ACTIVE;
     sti();
     process_context_switch(&dummy_context, &process_active->context);
 
@@ -121,18 +116,16 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
 
     cli();
 
-    struct process *process = process_alloc(entry, stack_size, name, arg);
+    struct process *process = process_alloc(entry, stack_size, priority, name, arg);
+    process->state = PROCESS_AVAILABLE;
 
+    // Parent is current process.
     process->parent = process_active;
     process->child = NULL;
 
     // Insert the next process in the child linked list of the parent.
     process->sibling = process_active->child;
     process_active->child = process;
-
-    // Insert in the right scheduler ring.
-    process->priority = priority;
-    process_sched_ring_insert(process);
 
     // If the new priority is higher than the current, we directly
     // interrupt the execution of the current process and switch to
