@@ -17,10 +17,10 @@ void kernel_start(void) {
 	cli();
 	printf("\fKernel starting...\n");
 	page_init();
-	clock_init();
+	// clock_init();
 	sti();
 
-	// process_idle(idle, 512, NULL);
+	process_idle(idle, 512, NULL);
 
 	while (1)
 	  hlt();
@@ -34,7 +34,7 @@ int idle(void *arg) {
 
 	(void) arg;
 
-	process_start(proc1, 512, "proc1", NULL);
+	process_start(proc1, 512, 1, "proc1", NULL);
 
 	for (;;) {
 		printf("[%s] pid = %i\n", process_name(), process_pid());

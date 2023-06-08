@@ -7,6 +7,8 @@
 #define PROCESS_NAME_MAX_SIZE 128
 #define PROCESS_STACK_SIZE 512
 #define PROCESS_MAX_COUNT 2
+#define PROCESS_MAX_PRIORITY 256
+
 
 
 typedef int32_t pid_t;
@@ -41,10 +43,16 @@ struct process_stack {
 struct process {
     /// Name of the process.
     char name[PROCESS_NAME_MAX_SIZE];
-    /// Previous process that will schedule this process.
+    /// Previous process in the schedule ring for the current priority.
     struct process *sched_prev;
-    /// Next process to run when scheduling.
+    /// Next process in the schedule ring for the current priority.
     struct process *sched_next;
+    /// Pointer to the parent process.
+    struct process *parent;
+    /// Head of the child linked list.
+    struct process *child;
+    /// Next child of the parent process's child linked list.
+    struct process *sibling;
     /// State of the process.
     enum process_state state;
     /// Context saving registers that will be restored on context switch.
@@ -53,7 +61,7 @@ struct process {
     char *stack;
     /// Process id, its index in the internal process queue.
     pid_t pid;
-    /// Scheduling priority.
+    /// Scheduling priority, from 0 to PROCESS_MAX_PRIORITY excluded.
     int priority;
     /// Valid when the process is a zombie, it's used for returning
     /// the exit code to the parent that waits for it.
@@ -68,7 +76,7 @@ typedef int (*process_entry_t)(void *);
 /// other threads.
 void process_idle(process_entry_t entry, size_t stack_size, void *arg);
 /// Start a process.
-pid_t process_start(process_entry_t entry, size_t stack_size, const char *name, void *arg);
+pid_t process_start(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg);
 /// Exit from the current process.
 void process_exit(int code) __attribute__((noreturn));
 /// Get PID of the current process.
