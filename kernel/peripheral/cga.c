@@ -3,10 +3,10 @@
 #include "cpu.h"
 #include "cga.h"
 
-#define CGA_CMD 0x03D4
-#define CGA_CMD_CURSOR_LO 0x0F
-#define CGA_CMD_CURSOR_HI 0x0E
-#define CGA_DATA 0x03D5
+#define CGA_CMD             0x03D4
+#define CGA_CMD_CURSOR_LO   0x0F
+#define CGA_CMD_CURSOR_HI   0x0E
+#define CGA_DATA            0x03D5
 
 
 static uint32_t lig = 0;
@@ -30,10 +30,12 @@ static void char_write(uint32_t line, uint32_t column, char ch, enum cga_color f
 /// Position the cursor.
 static void cursor_pos(uint32_t line, uint32_t column) {
     uint16_t index = column + line * 80;
+    cli();
     outb(CGA_CMD_CURSOR_LO, CGA_CMD);
     outb((uint8_t) (index & 0xFFFF), CGA_DATA);
     outb(CGA_CMD_CURSOR_HI, CGA_CMD);
     outb((uint8_t) ((index >> 8) & 0xFFFF), CGA_DATA);
+    sti();
 }
 
 /// Clear the screen.

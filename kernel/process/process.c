@@ -241,6 +241,7 @@ char *process_name(void) {
     return running_process->name;
 }
 
+// TODO: Remove this as it's cooperative multi-tasking and will not be relevant soon.
 void schedule() {
     process_schedule(false, NULL);
 }

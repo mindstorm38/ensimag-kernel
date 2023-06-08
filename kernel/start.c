@@ -2,9 +2,10 @@
 
 #include "process.h"
 #include "memory.h"
-#include "clock.h"
 #include "cga.h"
 #include "cpu.h"
+#include "rtc.h"
+#include "pit.h"
 
 #include "stdio.h"
 
@@ -14,11 +15,10 @@ int proc1(void *arg);
 
 void kernel_start(void) {
 
-	cli();
 	printf("\fKernel starting...\n");
 	page_init();
-	// clock_init();
-	sti();
+	rtc_init();
+	pit_init();
 
 	process_idle(idle, 512, NULL);
 
