@@ -1,7 +1,7 @@
-.globl process_context_switch
 # Structure de la pile en entree :
 #   %esp + 4 : adresse de l'ancien contexte
 #   %esp + 8 : adresse du nouveau contexte
+.globl process_context_switch
 process_context_switch:
     # sauvegarde du contexte de l'ancien processus
     movl 4(%esp), %eax
@@ -19,3 +19,8 @@ process_context_switch:
     movl 16(%eax), %edi
     # on passe la main au nouveau processus
     ret
+
+.globl process_implicit_exit
+process_implicit_exit:
+    pushl %eax
+    call process_internal_exit

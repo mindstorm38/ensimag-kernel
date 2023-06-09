@@ -21,7 +21,7 @@ void cons_write(const char *str, long size) {
 
 
 int start(int (*pt_func)(void *), unsigned long ssize, int prio, const char *name, void *arg) {
-    return process_start(pt_func, ssize, prio, name, arg);
+    return process_start(pt_func, ssize, prio - 1, name, arg);
 }
 
 void exit(int retval) {
@@ -33,11 +33,12 @@ int getpid(void) {
 }
 
 int getprio(int pid) {
-    return process_priority(pid);
+    int prio = process_priority(pid);
+    return prio < 0 ? prio : (prio + 1);
 }
 
 int chprio(int pid, int newprio) {
-    return process_set_priority(pid, newprio);
+    return process_set_priority(pid, newprio - 1);
 }
 
 int waitpid(int pid, int *retval) {

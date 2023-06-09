@@ -80,6 +80,10 @@ extern struct process *process_active;
 /// Function defined in assembly (process_context.S).
 void process_context_switch(struct process_context *prev_ctx, struct process_context *next_ctx);
 
+void process_internal_exit(int code) __attribute__((noreturn));
+/// Method defined in assembly to be sure that EAX don't get clobbered.
+void process_implicit_exit(void) __attribute__((noreturn));
+
 /// Internal function used to insert a process in its scheduler ring.
 void process_sched_ring_insert(struct process *process);
 /// Internal function used to remove a process from its scheduler ring.
@@ -106,9 +110,9 @@ struct process *process_sched_ring_find(int max_priority);
 void process_sched_advance(struct process *next_process, bool ring_remove);
 /// Change the scheduling priority of the given process, this function
 /// automatically handles context switch if the next priority is
-/// higher than the current process.
+/// higher than the current process. Previous priority is returned.
 ///
-/// Previous priority is returned.
+/// The given process must not be a zombie.
 int process_sched_set_priority(struct process *process, int new_priority);
 /// Internal function that handle pit interrupts.
 void process_sched_pit_handler(uint32_t clock);

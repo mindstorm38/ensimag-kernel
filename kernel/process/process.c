@@ -9,6 +9,7 @@
 #include "memory.h"
 #include "cpu.h"
 #include "pit.h"
+#include <stddef.h>
 
 
 static pid_t pid_counter = 0;
@@ -16,11 +17,14 @@ static pid_t pid_counter = 0;
 static struct process_context dummy_context;
 
 
-/// Internal function to kill the given process.
+/// Internal function to kill the given process. The given process 
+/// must not be already a zombie.
 static void process_internal_kill(struct process *process, int code) {
 
     struct process *next_process = NULL;
     struct process *parent = process->parent;
+
+    // printf("process_internal_kill(%s, %d)\n", process->name, code);
 
     if (parent != NULL) {
         if (parent->state == PROCESS_WAIT_CHILD) {
@@ -61,27 +65,6 @@ static void process_internal_kill(struct process *process, int code) {
 
 }
 
-
-/// Internal function that actually exits from active process.
-__attribute__((noreturn))
-static void process_internal_exit(int code) {
-    process_internal_kill(process_active, code);
-    // Never reached.
-    while (1);
-}
-
-/// Internal function that is implicitly called if the main function 
-/// returns without calling exit. A process function returns an 
-/// integer which will be placed in 'eax', we set this value to 
-/// process' exit code before actually exiting.
-static void process_implicit_exit(void) {
-    // We need to ensure that eax is not overwritten by the prelude.
-    // EAX set in clobbers so it's not overwritten while doing this.
-    int exit_code;
-	__asm__ __volatile__("mov %%eax, %0" : "=r" (exit_code) :: "eax");
-    process_internal_exit(exit_code);
-}
-
 /// Internal function that allocate a process given. Callers of this
 /// function ('process_idle' and 'process_start' only) need to 
 /// initialize remaining fields (parent/child/sibling/state).
@@ -93,9 +76,21 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
     if (process == NULL)
         return NULL;
 
+    // FIXME: This value need to be adjusted for function called at 
+    // exit or in interrupts, it's not easy to get it right, for 
+    // example using printf in those function requires 128 more words.
+    size_t more_size = sizeof(size_t) * 32;
+    size_t prelude_size = sizeof(size_t) * 3;
+
+    // Check overflow while adding prelude size.
+    if (__builtin_add_overflow(stack_size, prelude_size + more_size, &stack_size)) {
+        kfree(process);
+        return NULL;
+    }
+
     void *stack = kalloc(stack_size);
     if (stack == NULL) {
-        kfree(stack);
+        kfree(process);
         return NULL;
     }
 
@@ -103,7 +98,7 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
     process->stack = stack;
 
     void *stack_top = stack + stack_size;
-    size_t *stack_ptr = stack_top - sizeof(size_t) * 3; // We add 3 words
+    size_t *stack_ptr = stack_top - prelude_size;
     stack_ptr[0] = (size_t) entry;
     stack_ptr[1] = (size_t) process_implicit_exit;
     stack_ptr[2] = (size_t) arg;
@@ -197,10 +192,13 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     if (process_active == NULL)
         return -1;
 
-    if (priority >= PROCESS_MAX_PRIORITY)
+    if (priority < 0 || priority >= PROCESS_MAX_PRIORITY)
         return -1;
-
+    
     struct process *process = process_alloc(entry, stack_size, priority, name, arg);
+    if (process == NULL)
+        return -1; // Allocation error.
+    
     process->state = PROCESS_AVAILABLE;
 
     // Parent is current process.
@@ -226,6 +224,17 @@ void process_exit(int code) {
     process_internal_exit(code);
 }
 
+/// Internal function that actually exits from active process.
+void process_internal_exit(int code) {
+
+    // printf("internal exit: %d\n", code);
+
+    process_internal_kill(process_active, code);
+    // Never reached.
+    while (1);
+
+}
+
 int32_t process_pid(void) {
     return process_active->pid;
 }
@@ -247,8 +256,11 @@ int process_priority(pid_t pid) {
 
 int process_set_priority(pid_t pid, int priority) {
 
+    if (priority < 0 || priority >= PROCESS_MAX_PRIORITY)
+        return -1;
+
     struct process *process = process_from_pid(pid);
-    if (process == NULL)
+    if (process == NULL || process->state == PROCESS_ZOMBIE)
         return -1;
 
     return process_sched_set_priority(process, priority);
@@ -304,6 +316,10 @@ pid_t process_wait_pid(pid_t pid, int *exit_code) {
 }
 
 int process_kill(pid_t pid) {
+    
+    // Can't kill idle.
+    if (pid == 0)
+        return -1;
 
     if (pid == process_active->pid) {
         // Killing itself.
@@ -311,7 +327,7 @@ int process_kill(pid_t pid) {
     } else {
 
         struct process *process = process_from_pid(pid);
-        if (process == NULL)
+        if (process == NULL || process->state == PROCESS_ZOMBIE)
             return -1;
 
         // Killing another process.

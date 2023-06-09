@@ -37,7 +37,7 @@ int idle(void *arg) {
 
 	(void) arg;
 
-	process_start(test_run_wrapper, 512, 128, "test_run_wrapper", NULL);
+	process_start(test_run_wrapper, 512, 127, "test_run_wrapper", NULL);
 
 	for (;;) {
 
@@ -56,5 +56,5 @@ int idle(void *arg) {
 
 static int test_run_wrapper(void *arg) {
 	(void) arg;
-	return test_run(2);
+	return test_run(6);
 }

@@ -1,11 +1,14 @@
 #include "memory.h"
 #include "mem_internals.h"
 
+#include "stdio.h"
+
 
 void *kalloc(size_t size) {
 
-    if (size == 0)
+    if (size <= 0)
         return NULL;
+
     
     if (size >= LARGEALLOC)
 	    return kalloc_large(size);
