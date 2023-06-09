@@ -9,7 +9,6 @@
 #include "memory.h"
 #include "cpu.h"
 #include "pit.h"
-#include <stddef.h>
 
 
 static pid_t pid_counter = 0;
@@ -166,6 +165,7 @@ static void process_free(struct process *process) {
 
 static void process_pit_handler(uint32_t clock) {
     process_sched_pit_handler(clock);
+    process_time_pit_handler(clock);
 }
 
 void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
@@ -335,6 +335,16 @@ int process_kill(pid_t pid) {
         return 0;
 
     }
+
+}
+
+void process_wait_clock(uint32_t clock) {
+
+    process_active->state = PROCESS_WAIT_TIME;
+    process_active->state_data.wait_time_clock = pit_clock() + clock;
+
+    process_time_queue_add(process_active);
+    process_sched_advance(NULL, true);
 
 }
 

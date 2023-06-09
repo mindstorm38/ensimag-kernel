@@ -41,7 +41,7 @@ pid_t process_wait_pid(pid_t pid, int *exit_code);
 int process_kill(pid_t pid);
 
 /// Pause the process for given number of clock cycles.
-void process_wait(uint32_t clock);
+void process_wait_clock(uint32_t clock);
 
 void process_debug(void);
 

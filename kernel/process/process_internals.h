@@ -30,6 +30,9 @@ union process_state_data {
     /// resumed after `PROCESS_WAIT_CHILD` , it became invalid after 
     /// `process_wait_pid` returns.
     struct process *active_new_zombie_child;
+    /// This value is valid in `PROCESS_WAIT_TIME` and contains the
+    /// clock value that will wake up this process.
+    uint32_t wait_time_clock;
 };
 
 /// Registers context of a process.
@@ -48,8 +51,16 @@ struct process {
     /// Next process in the overall linked list.
     struct process *overall_next;
     /// Previous process in the schedule ring for the current priority.
+    ///
+    /// Note that when the process is in a wait state, and therefore
+    /// not in the scheduler ring, this variable may be used for the
+    /// wait linked list.
     struct process *sched_prev;
     /// Next process in the schedule ring for the current priority.
+    ///
+    /// Note that when the process is in a wait state, and therefore
+    /// not in the scheduler ring, this variable may be used for the
+    /// wait linked list.
     struct process *sched_next;
     /// Pointer to the parent process.
     struct process *parent;
@@ -114,8 +125,15 @@ void process_sched_advance(struct process *next_process, bool ring_remove);
 ///
 /// The given process must not be a zombie.
 int process_sched_set_priority(struct process *process, int new_priority);
-/// Internal function that handle pit interrupts.
+/// Internal function that handle pit interrupts for scheduler.
 void process_sched_pit_handler(uint32_t clock);
+
+/// Add the process to the clock queue.
+void process_time_queue_add(struct process *process);
+/// Add the process to the clock queue.
+void process_time_queue_remove(struct process *process);
+/// Internal function that handle pit interrupts for clock.
+void process_time_pit_handler(uint32_t clock);
 
 /// Register the process in the overall linked list.
 void process_overall_add(struct process *process);
