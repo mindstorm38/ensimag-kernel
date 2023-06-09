@@ -114,11 +114,11 @@ void process_sched_advance(struct process *next_process, bool ring_remove) {
 
 }
 
-void process_sched_set_priority(struct process *process, int new_priority) {
+int process_sched_set_priority(struct process *process, int new_priority) {
 
     int prev_priority = process->priority;
     if (prev_priority == new_priority)
-        return;
+        return prev_priority;
 
     // Remove the process from its current ring.
     struct process *next_process = process_sched_ring_remove(process);
@@ -167,6 +167,8 @@ void process_sched_set_priority(struct process *process, int new_priority) {
     if (next_process != NULL && next_process != process) {
         process_sched_advance(next_process, false);
     }
+
+    return prev_priority;
 
 }
 

@@ -102,9 +102,11 @@ void process_sched_advance(struct process *next_process, bool ring_remove);
 /// automatically handles context switch if the next priority is
 /// higher than the current process.
 ///
+/// Previous priority is returned.
+///
 /// Interrupts must be disabled while calling this function, this 
 /// function will re-enable interrupts of a context switch is needed.
-void process_sched_set_priority(struct process *process, int new_priority);
+int process_sched_set_priority(struct process *process, int new_priority);
 /// Internal function that handle pit interrupts.
 void process_sched_pit_handler(uint32_t clock);
 

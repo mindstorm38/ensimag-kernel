@@ -164,12 +164,14 @@ int process_priority(pid_t pid) {
 
 }
 
-void process_set_priority(pid_t pid, int priority) {
+int process_set_priority(pid_t pid, int priority) {
 
     struct process *process = process_from_pid(pid);
 
     if (process != NULL)
-        process_sched_set_priority(process, priority);
+        return process_sched_set_priority(process, priority);
+    else
+        return -1;
 
 }
 

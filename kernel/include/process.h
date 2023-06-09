@@ -34,8 +34,8 @@ void process_wait(uint32_t clock);
 
 /// Return the priority of the given pid.
 int process_priority(pid_t pid);
-/// Set priority 
-void process_set_priority(pid_t pid, int priority);
+/// Set priority and return previous one.
+int process_set_priority(pid_t pid, int priority);
 
 void process_debug(void);
 
