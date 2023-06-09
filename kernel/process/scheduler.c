@@ -4,8 +4,14 @@
 #include "cpu.h"
 
 
-struct process *process_sched_rings[PROCESS_MAX_PRIORITY];
-struct process *process_active;
+/// Important to be initialize to all zero, we have a pointer to the
+/// first process of the ring for each priority.
+struct process *process_sched_rings[PROCESS_MAX_PRIORITY] = {0};
+
+/// The currently active process, this process' priority is considered
+/// to be the highest available in the scheduler rings: no highest 
+/// priority process can be found. 
+struct process *process_active = NULL;
 
 
 void process_sched_ring_insert(struct process *process) {
@@ -62,7 +68,7 @@ struct process *process_sched_ring_remove(struct process *process) {
 struct process *process_sched_ring_find(int max_priority) {
 
     for (int priority = max_priority - 1; priority >= 0; priority--) {
-        if (process_sched_rings[priority]) {
+        if (process_sched_rings[priority] != NULL) {
             return process_sched_rings[priority];
         }
     }
@@ -98,19 +104,77 @@ void process_sched_advance(struct process *next_process, bool ring_remove) {
 
     // Do not context switch if the same process loops over.
     if (prev_process == next_process) {
-        sti();
+        // Do nothing
     } else {
+        
         process_active = next_process;
-        sti();
         process_context_switch(&prev_process->context, &next_process->context);
+        
+    }
+
+}
+
+void process_sched_set_priority(struct process *process, int new_priority) {
+
+    int prev_priority = process->priority;
+    if (prev_priority == new_priority)
+        return;
+
+    // Remove the process from its current ring.
+    struct process *next_process = process_sched_ring_remove(process);
+
+    // Insert the process into its new ring.
+    process->priority = new_priority;
+    process_sched_ring_insert(process);
+
+    if (new_priority < prev_priority) {
+
+        // New priority is less than previous one.
+
+        if (process_active == process) {
+            // If we are the current process, we need to find another
+            // process to run because we now have a lower priority.
+            if (next_process == NULL) {
+                // Here we need to find a process on a new ring 
+                // because our ring is now empty.
+                next_process = process_sched_ring_find(prev_priority);
+                if (next_process == process) {
+                    // Our process is also the new highest priority one.
+                    next_process = NULL;
+                }
+            }
+        } else {
+            // Not the current process, our process must have a
+            // priority lower to the active process.
+            next_process = NULL; // No need to context switch.
+        }
+
+    } else {
+
+        // New priority is higher than current one.
+        if (process_active == process) {
+            // We were already the highest priority process, no need
+            // to context switch.
+            next_process = NULL;
+        } else if (new_priority > process_active->priority) {
+            // New priority is higher than current one, switch to our
+            // process.
+            next_process = process;
+        }
+
+    }
+
+    if (next_process != NULL && next_process != process) {
+        process_sched_advance(next_process, false);
     }
 
 }
 
 void process_sched_pit_handler(uint32_t clock) {
+
     (void) clock;
 
-    // Interruptions are not enabled here, don't need to cli.    
+    // Interruptions are disabled here, don't need to cli.    
     process_active->state = PROCESS_AVAILABLE;
     process_sched_advance(NULL, false);
 

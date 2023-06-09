@@ -19,8 +19,6 @@ static struct process_context dummy_context;
 __attribute__((noreturn))
 static void process_internal_exit(void) {
 
-    cli();
-
     // TODO: Free stack/process? Maybe in waitpid...
 
     // Process is zombie until waited for by parent.
@@ -89,9 +87,6 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
 
 void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     
-    // Disable interrupts until process_context_switch which call sti.
-    cli();
-
     process_active = process_alloc(entry, stack_size, 0, "idle", arg);
     process_active->state = PROCESS_ACTIVE;
 
@@ -104,7 +99,6 @@ void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     pit_set_handler(process_sched_pit_handler);
 
     // Manually switch to the idle process context.
-    sti();
     process_context_switch(&dummy_context, &process_active->context);
 
 }
@@ -113,8 +107,6 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     
     // assert(running_process)
     // assert(priority < MAX_PRIO)
-
-    cli();
 
     struct process *process = process_alloc(entry, stack_size, priority, name, arg);
     process->state = PROCESS_AVAILABLE;
@@ -132,9 +124,6 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     // this scheduler ring.
     if (process->priority > process_active->priority) {
         process_sched_advance(process, false);
-    } else {
-        // The advance function re-enable interrupts.
-        sti();
     }
 
     return process->pid;
@@ -166,9 +155,7 @@ void process_wait(uint32_t clock) {
 
 int process_priority(pid_t pid) {
 
-    cli();
     struct process *process = process_from_pid(pid);
-    sti();
 
     if (process == NULL)
         return -1;
@@ -178,15 +165,16 @@ int process_priority(pid_t pid) {
 }
 
 void process_set_priority(pid_t pid, int priority) {
-    (void) pid;
-    (void) priority;
-    // TODO:
+
+    struct process *process = process_from_pid(pid);
+
+    if (process != NULL)
+        process_sched_set_priority(process, priority);
+
 }
 
 
 void process_debug(void) {
-
-    cli();
 
     printf("process %p\n", process_active);
     printf("- %s (%d)\n", process_active->name, process_active->pid);
@@ -208,7 +196,5 @@ void process_debug(void) {
     printf("\n");
 
     printf("- esp: %p\n", (void *) process_active->context.esp);
-
-    sti();
 
 }

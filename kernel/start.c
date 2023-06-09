@@ -21,9 +21,6 @@ void kernel_start(void) {
 	rtc_init();
 	pit_init();
 
-	sti();
-	// printf("eflags: %lu\n", save_flags());
-
 	process_idle(idle, 512, NULL);
 
 	while (1)
@@ -42,7 +39,11 @@ int idle(void *arg) {
 	process_start(proc1, 512, 0, "proc2", NULL);
 
 	for (;;) {
-		printf("[%s]\n", process_name());
+		printf("[%s] pid: %d, prio: %d\n", process_name(), process_pid(), process_priority(process_pid()));
+		for (int i = 0; i < 10000000; ++i);
+		sti();
+		hlt();
+		cli();
 	}
 
 	return 0;
@@ -50,9 +51,18 @@ int idle(void *arg) {
 }
 
 int proc1(void *arg) {
+
 	(void) arg;
-	for (;;) {
-		printf("[%s]\n", process_name());
+
+	for (int i = 0;; i++) {
+		printf("[%s] pid: %d, prio: %d\n", process_name(), process_pid(), process_priority(process_pid()));
+		for (int i = 0; i < 10000000; ++i);
+		sti();
+		hlt();
+		cli();
+		// printf("[%s] pid: %d, prio: %d\n", process_name(), process_pid(), process_priority(process_pid()));
 	}
+
 	return 0;
+
 }

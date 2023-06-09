@@ -65,8 +65,6 @@ extern struct process *process_active;
 
 
 /// Function defined in assembly (process_context.S).
-///
-/// Interrupts must be re-enable before calling this function.
 void process_context_switch(struct process_context *prev_ctx, struct process_context *next_ctx);
 
 /// Internal function used to insert a process in its scheduler ring.
@@ -100,6 +98,13 @@ struct process *process_sched_ring_find(int max_priority);
 /// This function may or not be called from an interrupt handler, in
 /// any case this function re-enable the interrupts before switching.
 void process_sched_advance(struct process *next_process, bool ring_remove);
+/// Change the scheduling priority of the given process, this function
+/// automatically handles context switch if the next priority is
+/// higher than the current process.
+///
+/// Interrupts must be disabled while calling this function, this 
+/// function will re-enable interrupts of a context switch is needed.
+void process_sched_set_priority(struct process *process, int new_priority);
 /// Internal function that handle pit interrupts.
 void process_sched_pit_handler(uint32_t clock);
 

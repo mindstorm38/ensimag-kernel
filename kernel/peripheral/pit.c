@@ -26,11 +26,9 @@ static pit_handler_t active_handler = NULL;
 /// Internal function to initialize frequency of the PIT.
 static void pit_set_frequency(void) {
     const uint16_t freq_value = PIT_INTERVAL;
-    cli();
     outb(PIT_CMD_FREQ, PIT_CMD);
     outb(freq_value & 0xFF, PIT_CHAN0_DATA);
     outb((freq_value >> 8) & 0xFF, PIT_CHAN0_DATA);
-    sti();
 }
 
 /// Internal function that handless PIT interrupts.

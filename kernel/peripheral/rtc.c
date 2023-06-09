@@ -66,12 +66,13 @@ static void rtc_enable_interrupt(void) {
 }
 
 static void rtc_interrupt_handler() {
-
-    irq_eoi(8);
+    
     get_cmos_reg(CMOS_REG_STATUS_C, false);
 
     time_update();
     // time_print();
+
+    irq_eoi(8);
 
 }
 

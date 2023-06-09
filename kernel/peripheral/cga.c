@@ -30,12 +30,10 @@ static void char_write(uint32_t line, uint32_t column, char ch, enum cga_color f
 /// Position the cursor.
 static void cursor_pos(uint32_t line, uint32_t column) {
     uint16_t index = column + line * 80;
-    // cli();
     outb(CGA_CMD_CURSOR_LO, CGA_CMD);
     outb((uint8_t) (index & 0xFFFF), CGA_DATA);
     outb(CGA_CMD_CURSOR_HI, CGA_CMD);
     outb((uint8_t) ((index >> 8) & 0xFFFF), CGA_DATA);
-    // sti();
 }
 
 /// Clear the screen.
