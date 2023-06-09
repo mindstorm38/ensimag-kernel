@@ -7,6 +7,7 @@
 #define PROCESS_NAME_MAX_SIZE 128
 #define PROCESS_STACK_SIZE 512
 #define PROCESS_MAX_COUNT 2
+
 #define PROCESS_MAX_PRIORITY 256
 
 
@@ -29,13 +30,16 @@ pid_t process_pid(void);
 /// Get name of the current process.
 char *process_name(void);
 
-/// Pause the process for given number of clock cycles.
-void process_wait(uint32_t clock);
-
 /// Return the priority of the given pid.
 int process_priority(pid_t pid);
 /// Set priority and return previous one.
 int process_set_priority(pid_t pid, int priority);
+
+/// Wait for termination of one of the child processes.
+pid_t process_wait_pid(pid_t pid, int *exit_code);
+
+/// Pause the process for given number of clock cycles.
+void process_wait(uint32_t clock);
 
 void process_debug(void);
 

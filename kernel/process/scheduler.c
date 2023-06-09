@@ -45,6 +45,11 @@ struct process *process_sched_ring_remove(struct process *process) {
     struct process *prev_process = process->sched_prev;
     struct process *next_process = process->sched_next;
 
+    // Process is already removed from its ring.
+    if (prev_process == NULL || next_process == NULL) {
+        return NULL;
+    }
+
     // If the process is it's own next process, it means that it was
     // alone in its ring. So we set all to NULL.
     if (next_process == process) {
@@ -55,11 +60,15 @@ struct process *process_sched_ring_remove(struct process *process) {
         next_process->sched_prev = prev_process;
     }
 
-    // First process of the ring.
+    // Update f process of the ring.
     struct process **first_process_ptr = &process_sched_rings[process->priority];
     if (*first_process_ptr == process) {
         *first_process_ptr = next_process;
     }
+
+    // Nullify its pointers, used to know if it's in a ring.
+    process->sched_prev = NULL;
+    process->sched_next = NULL;
 
     return next_process;
 

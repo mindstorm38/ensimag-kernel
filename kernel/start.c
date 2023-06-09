@@ -39,8 +39,9 @@ int idle(void *arg) {
 	process_start(proc1, 512, 0, "proc2", NULL);
 
 	for (;;) {
-		printf("[%s] pid: %d, prio: %d\n", process_name(), process_pid(), process_priority(process_pid()));
-		for (int i = 0; i < 10000000; ++i);
+		// printf("[%s] pid: %d, prio: %d\n", process_name(), process_pid(), process_priority(process_pid()));
+		process_debug();
+		for (int i = 0; i < 100000000; ++i);
 		sti();
 		hlt();
 		cli();
@@ -55,8 +56,9 @@ int proc1(void *arg) {
 	(void) arg;
 
 	for (int i = 0;; i++) {
-		printf("[%s] pid: %d, prio: %d\n", process_name(), process_pid(), process_priority(process_pid()));
-		for (int i = 0; i < 10000000; ++i);
+		// printf("[%s] pid: %d, prio: %d\n", process_name(), process_pid(), process_priority(process_pid()));
+		process_debug();
+		for (int i = 0; i < 100000000; ++i);
 		sti();
 		hlt();
 		cli();

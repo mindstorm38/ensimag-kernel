@@ -1,3 +1,4 @@
+#include "process.h"
 #include "stdbool.h"
 #include "stdint.h"
 #include "stddef.h"
@@ -17,12 +18,26 @@ static struct process_context dummy_context;
 
 /// Internal function that actually exits and schedule next process.
 __attribute__((noreturn))
-static void process_internal_exit(void) {
+static void process_internal_exit(int code) {
 
-    // TODO: Free stack/process? Maybe in waitpid...
+    struct process *parent = process_active->parent;
+    if (parent != NULL) {
+        if (parent->state == PROCESS_WAIT_CHILD) {
+            pid_t parent_wait_pid = parent->state_data.wait_child_pid;
+            if (parent_wait_pid < 0 || parent_wait_pid == process_active->pid) {
+                // We need to reactivate the parent.
+                parent->state = PROCESS_AVAILABLE;
+                parent->state_data.active_new_zombie_child = process_active;
+            }
+        }
+    }
+
+    // TODO: If parent state is ZOMBIE, or is null, just free the 
+    //   process because it will never be waited for.
 
     // Process is zombie until waited for by parent.
     process_active->state = PROCESS_ZOMBIE;
+    process_active->state_data.zombie_exit_code = code;
     process_sched_advance(NULL, true);
 
     // Never reached.
@@ -37,8 +52,9 @@ static void process_internal_exit(void) {
 static void process_implicit_exit(void) {
     // We need to ensure that eax is not overwritten by the prelude.
     // EAX set in clobbers so it's not overwritten while doing this.
-	__asm__ __volatile__("mov %%eax, %0" : "=r" (process_active->exit_code) :: "eax");
-    process_internal_exit();
+    int exit_code;
+	__asm__ __volatile__("mov %%eax, %0" : "=r" (exit_code) :: "eax");
+    process_internal_exit(exit_code);
 }
 
 /// Internal function that allocate a process given. Callers of this
@@ -48,7 +64,6 @@ static void process_implicit_exit(void) {
 /// Interrupts must be disabled before calling this function.
 static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg) {
 
-    // TODO: Check allocation errors.
     struct process *process = kalloc(sizeof(struct process));
     if (process == NULL)
         return NULL;
@@ -85,6 +100,54 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
 
 }
 
+/// Internal function to free the given process. Caller must ensure
+/// that this process is present in the overall list. The process
+/// should not be the active one.
+/// 
+/// This is typically used when the process has been a zombie and is
+/// waited for by its parent, or if its parent dies.
+static void process_free(struct process *process) {
+
+    // Remove the process from scheduler ring (if relevant).
+    process_sched_ring_remove(process);
+    // Remove the process from overall list.
+    process_overall_remove(process);
+
+    // Remove it from its parent/sibling relationship.
+    struct process *parent = process->parent;
+    if (parent != NULL) {
+
+        struct process **child_ptr = &parent->child;
+        while (*child_ptr != NULL) {
+            if (*child_ptr == process) {
+                // We found the child to remove, set the parent ptr to
+                // its sibling (which may be null if no sibling).
+                *child_ptr = process->sibling;
+                break;
+            }
+            child_ptr = &(*child_ptr)->sibling;
+        }
+
+    }
+
+    // We need to null-ptr the child's parent, to avoid storing an
+    // invalid pointer.
+    struct process *child = process->child;
+    while (child != NULL) {
+        child->parent = NULL;
+        child = child->sibling;
+    }
+
+    // Free resources.
+    kfree(process->stack);
+    kfree(process);
+
+}
+
+static void process_pit_handler(uint32_t clock) {
+    process_sched_pit_handler(clock);
+}
+
 void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     
     process_active = process_alloc(entry, stack_size, 0, "idle", arg);
@@ -96,7 +159,7 @@ void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     process_active->sibling = NULL;
 
     // Start preemptive scheduler.
-    pit_set_handler(process_sched_pit_handler);
+    pit_set_handler(process_pit_handler);
 
     // Manually switch to the idle process context.
     process_context_switch(&dummy_context, &process_active->context);
@@ -105,8 +168,12 @@ void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
 
 pid_t process_start(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg) {
     
-    // assert(running_process)
-    // assert(priority < MAX_PRIO)
+    // Invalid, function not called from a function.
+    if (process_active == NULL)
+        return -1;
+
+    if (priority >= PROCESS_MAX_PRIORITY)
+        return -1;
 
     struct process *process = process_alloc(entry, stack_size, priority, name, arg);
     process->state = PROCESS_AVAILABLE;
@@ -131,8 +198,7 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
 }
 
 void process_exit(int code) {
-    process_active->exit_code = code;
-    process_internal_exit();
+    process_internal_exit(code);
 }
 
 int32_t process_pid(void) {
@@ -141,16 +207,6 @@ int32_t process_pid(void) {
 
 char *process_name(void) {
     return process_active->name;
-}
-
-void process_wait(uint32_t clock) {
-
-    (void) clock;
-
-    // process_active->state = PROCESS_WAIT_TIME;
-    // // TODO: Add the running process to a queue of time.
-    // process_sched_advance(NULL, true);
-
 }
 
 int process_priority(pid_t pid) {
@@ -167,11 +223,56 @@ int process_priority(pid_t pid) {
 int process_set_priority(pid_t pid, int priority) {
 
     struct process *process = process_from_pid(pid);
-
-    if (process != NULL)
-        return process_sched_set_priority(process, priority);
-    else
+    if (process == NULL)
         return -1;
+
+    return process_sched_set_priority(process, priority);
+
+}
+
+pid_t process_wait_pid(pid_t pid, int *exit_code) {
+
+    struct process *child = process_active->child;
+    if (child == NULL)
+        return -1;
+    
+    while (child != NULL) {
+        if (pid < 0 && child->state == PROCESS_ZOMBIE) {
+            // If we search for any child, if we found a zombie we can
+            // directly return and it will be removed below.
+            break;
+        } else if (pid == child->pid) {
+            // If we search a particular child, we break and check it.
+            break;
+        }
+        child = child->sibling;
+    }
+
+    // Pointer is null but we are searching for a particular 
+    // process, so no child exists with this pid.
+    if (child == NULL && pid >= 0)
+        return -1;
+    
+    // If child == NULL must be pid < 0 (above condition).
+    if (child == NULL || child->state != PROCESS_ZOMBIE) {
+
+        // Here, targetted child(ren) are not zombie: pause this process.
+        process_active->state = PROCESS_WAIT_CHILD;
+        process_active->state_data.wait_child_pid = pid;
+        process_sched_advance(NULL, true);
+
+        // We'll resume here when targetted child exits, and it will 
+        // set the pointer to its own structure.
+        child = process_active->state_data.active_new_zombie_child;
+        pid = child->pid;
+
+    }
+
+    // Here, child should not be null and its state should be ZOMBIE.
+    *exit_code = child->state_data.zombie_exit_code;
+    process_free(child);
+
+    return pid;
 
 }
 
