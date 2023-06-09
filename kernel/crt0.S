@@ -192,3 +192,44 @@ pgtabio:
 	.long	0xfe6c001B	
 	.fill 1023,4,0
 */
+
+
+
+
+
+
+
+
+#define UNIMPLEMENTED(X) \
+	.weak X			;\
+X##:\
+	ret
+
+UNIMPLEMENTED(cons_write)
+UNIMPLEMENTED(cons_read)
+UNIMPLEMENTED(exit)
+UNIMPLEMENTED(start)
+UNIMPLEMENTED(waitpid)
+UNIMPLEMENTED(kill)
+UNIMPLEMENTED(getpid)
+UNIMPLEMENTED(getprio)
+UNIMPLEMENTED(chprio)
+UNIMPLEMENTED(screate)
+UNIMPLEMENTED(scount)
+UNIMPLEMENTED(signal)
+UNIMPLEMENTED(signaln)
+UNIMPLEMENTED(wait)
+UNIMPLEMENTED(sreset)
+UNIMPLEMENTED(sdelete)
+UNIMPLEMENTED(try_wait)
+UNIMPLEMENTED(sys_info)
+UNIMPLEMENTED(pcreate)
+UNIMPLEMENTED(psend)
+UNIMPLEMENTED(pdelete)
+UNIMPLEMENTED(pcount)
+UNIMPLEMENTED(preceive)
+UNIMPLEMENTED(preset)
+UNIMPLEMENTED(clock_settings)
+UNIMPLEMENTED(wait_clock)
+UNIMPLEMENTED(current_clock)
+UNIMPLEMENTED(cons_echo)

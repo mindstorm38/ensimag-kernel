@@ -43,3 +43,7 @@ int chprio(int pid, int newprio) {
 int waitpid(int pid, int *retval) {
     return process_wait_pid(pid, retval);
 }
+
+int kill(int pid) {
+    return process_kill(pid);
+}

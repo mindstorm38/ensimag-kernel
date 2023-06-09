@@ -16,27 +16,26 @@ static pid_t pid_counter = 0;
 static struct process_context dummy_context;
 
 
-/// Internal function that actually exits and schedule next process.
-__attribute__((noreturn))
-static void process_internal_exit(int code) {
+/// Internal function to kill the given process.
+static void process_internal_kill(struct process *process, int code) {
 
     struct process *next_process = NULL;
+    struct process *parent = process->parent;
 
-    struct process *parent = process_active->parent;
     if (parent != NULL) {
         if (parent->state == PROCESS_WAIT_CHILD) {
             pid_t parent_wait_pid = parent->state_data.wait_child_pid;
-            if (parent_wait_pid < 0 || parent_wait_pid == process_active->pid) {
+            if (parent_wait_pid < 0 || parent_wait_pid == process->pid) {
 
                 // We need to reactivate the parent.
                 parent->state = PROCESS_AVAILABLE;
-                parent->state_data.active_new_zombie_child = process_active;
+                parent->state_data.active_new_zombie_child = process;
                 // Re-insert the parent in its ring.
                 process_sched_ring_insert(parent);
 
                 // If parent's priority is higher that currently 
                 // exiting process, schedule the parent: 
-                if (parent->priority > process_active->priority) {
+                if (parent->priority > process->priority) {
                     next_process = parent;
                 }
 
@@ -48,13 +47,27 @@ static void process_internal_exit(int code) {
     //   process because it will never be waited for.
 
     // Process is zombie until waited for by parent.
-    process_active->state = PROCESS_ZOMBIE;
-    process_active->state_data.zombie_exit_code = code;
-    process_sched_advance(next_process, true);
+    process->state = PROCESS_ZOMBIE;
+    process->state_data.zombie_exit_code = code;
 
+    if (process == process_active) {
+        // If killed process is the active one, schedule next one.
+        process_sched_advance(next_process, true);
+    } else {
+        // If killed process is not active, just remove it from its 
+        // ring.
+        process_sched_ring_remove(process);
+    }
+
+}
+
+
+/// Internal function that actually exits from active process.
+__attribute__((noreturn))
+static void process_internal_exit(int code) {
+    process_internal_kill(process_active, code);
     // Never reached.
     while (1);
-
 }
 
 /// Internal function that is implicitly called if the main function 
@@ -287,6 +300,25 @@ pid_t process_wait_pid(pid_t pid, int *exit_code) {
     process_free(child);
 
     return pid;
+
+}
+
+int process_kill(pid_t pid) {
+
+    if (pid == process_active->pid) {
+        // Killing itself.
+        process_internal_exit(0);
+    } else {
+
+        struct process *process = process_from_pid(pid);
+        if (process == NULL)
+            return -1;
+
+        // Killing another process.
+        process_internal_kill(process, 0);
+        return 0;
+
+    }
 
 }
 

@@ -12,11 +12,11 @@ int start(int (*pt_func)(void *), unsigned long ssize, int prio, const char *nam
 void exit(int retval);
 int getpid(void);
 int getprio(int pid);
-int kill(int pid);
 int chprio(int pid, int newprio);
+int waitpid(int pid, int *retval);
+int kill(int pid);
 
 void wait_clock(unsigned long clock);
-int waitpid(int pid, int *retval);
 
 int pcount(int fid, int *count);
 int pcreate(int count);
