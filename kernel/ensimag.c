@@ -39,3 +39,7 @@ int getprio(int pid) {
 int chprio(int pid, int newprio) {
     return process_set_priority(pid, newprio);
 }
+
+int waitpid(int pid, int *retval) {
+    return process_wait_pid(pid, retval);
+}

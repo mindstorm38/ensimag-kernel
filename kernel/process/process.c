@@ -20,14 +20,26 @@ static struct process_context dummy_context;
 __attribute__((noreturn))
 static void process_internal_exit(int code) {
 
+    struct process *next_process = NULL;
+
     struct process *parent = process_active->parent;
     if (parent != NULL) {
         if (parent->state == PROCESS_WAIT_CHILD) {
             pid_t parent_wait_pid = parent->state_data.wait_child_pid;
             if (parent_wait_pid < 0 || parent_wait_pid == process_active->pid) {
+
                 // We need to reactivate the parent.
                 parent->state = PROCESS_AVAILABLE;
                 parent->state_data.active_new_zombie_child = process_active;
+                // Re-insert the parent in its ring.
+                process_sched_ring_insert(parent);
+
+                // If parent's priority is higher that currently 
+                // exiting process, schedule the parent: 
+                if (parent->priority > process_active->priority) {
+                    next_process = parent;
+                }
+
             }
         }
     }
@@ -38,7 +50,7 @@ static void process_internal_exit(int code) {
     // Process is zombie until waited for by parent.
     process_active->state = PROCESS_ZOMBIE;
     process_active->state_data.zombie_exit_code = code;
-    process_sched_advance(NULL, true);
+    process_sched_advance(next_process, true);
 
     // Never reached.
     while (1);
@@ -269,7 +281,9 @@ pid_t process_wait_pid(pid_t pid, int *exit_code) {
     }
 
     // Here, child should not be null and its state should be ZOMBIE.
-    *exit_code = child->state_data.zombie_exit_code;
+    if (exit_code != NULL)
+        *exit_code = child->state_data.zombie_exit_code;
+    
     process_free(child);
 
     return pid;

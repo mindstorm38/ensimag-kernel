@@ -16,7 +16,7 @@ int kill(int pid);
 int chprio(int pid, int newprio);
 
 void wait_clock(unsigned long clock);
-void waitpid(int pid, int *retval);
+int waitpid(int pid, int *retval);
 
 int pcount(int fid, int *count);
 int pcreate(int count);

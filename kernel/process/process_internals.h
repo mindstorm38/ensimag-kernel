@@ -97,7 +97,8 @@ struct process *process_sched_ring_find(int max_priority);
 ///
 /// The next process may optionally be specified, if not the case the
 /// next process in the ring is used, if there is no more process in 
-/// the ring, a lower-priority ring process is scheduled.
+/// the ring, a lower-priority ring process is scheduled. Important:
+/// this function doesn't search for higher priority.
 ///
 /// The next process state is set to ACTIVE, and the previous process
 /// state is untouched, so the caller must set it before calling this
