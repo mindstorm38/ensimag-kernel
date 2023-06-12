@@ -53,7 +53,7 @@ uint32_t pit_clock() {
 }
 
 void pit_clock_settings(uint32_t *quartz_freq, uint32_t *ticks) {
-    *quartz_freq = PIT_FREQ;
+    *quartz_freq = PIT_QUARTZ_FREQ;
     *ticks = PIT_INTERVAL;
 }
 

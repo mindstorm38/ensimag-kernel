@@ -41,9 +41,6 @@ int idle(void *arg) {
 
 	for (;;) {
 
-		// Cleanup children.
-		process_wait_pid(-1, NULL);
-
 		sti();
 		hlt();
 		cli();
@@ -56,5 +53,5 @@ int idle(void *arg) {
 
 static int test_run_wrapper(void *arg) {
 	(void) arg;
-	return test_run(6);
+	return test_run(7);
 }

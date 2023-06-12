@@ -48,3 +48,7 @@ int waitpid(int pid, int *retval) {
 int kill(int pid) {
     return process_kill(pid);
 }
+
+void wait_clock(unsigned long clock) {
+    process_wait_clock(clock);
+}

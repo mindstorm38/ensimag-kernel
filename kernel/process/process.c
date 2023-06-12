@@ -23,16 +23,18 @@ static void process_internal_kill(struct process *process, int code) {
     struct process *next_process = NULL;
     struct process *parent = process->parent;
 
-    // printf("process_internal_kill(%s, %d)\n", process->name, code);
+#if PROCESS_DEBUG
+    printf("[%s] process_internal_kill(%s, %d)\n", process_active->name, process->name, code);
+#endif
 
     if (parent != NULL) {
         if (parent->state == PROCESS_WAIT_CHILD) {
-            pid_t parent_wait_pid = parent->state_data.wait_child_pid;
+            pid_t parent_wait_pid = parent->wait_child.child_pid;
             if (parent_wait_pid < 0 || parent_wait_pid == process->pid) {
 
                 // We need to reactivate the parent.
-                parent->state = PROCESS_AVAILABLE;
-                parent->state_data.active_new_zombie_child = process;
+                parent->state = PROCESS_SCHED_AVAILABLE;
+                parent->sched.new_zombie_child = process;
                 // Re-insert the parent in its ring.
                 process_sched_ring_insert(parent);
 
@@ -47,19 +49,35 @@ static void process_internal_kill(struct process *process, int code) {
     }
 
     // TODO: If parent state is ZOMBIE, or is null, just free the 
-    //   process because it will never be waited for.
+    // process because it will never be waited for.
+
+    if (process->state == PROCESS_SCHED_ACTIVE || process->state == PROCESS_SCHED_AVAILABLE) {
+
+        // If the process was active or available, remove it from scheduler.
+        struct process *next_ring_process = process_sched_ring_remove(process);
+
+        // If no next process is already set (higher priority), use the 
+        // next ring one.
+        if (next_process == NULL) {
+            next_process = next_ring_process;
+        }
+
+    } else if (process->state == PROCESS_WAIT_TIME) {
+
+        // If the process was waiting time, remove it from the queue.
+        process_time_queue_remove(process);
+
+    } else {
+        panic("process_internal_kill(...): unsupported state when exiting: %d\n", process->state);
+    }
 
     // Process is zombie until waited for by parent.
     process->state = PROCESS_ZOMBIE;
-    process->state_data.zombie_exit_code = code;
+    process->zombie.exit_code = code;
 
+    // If killed process is the active one, schedule next one.
     if (process == process_active) {
-        // If killed process is the active one, schedule next one.
-        process_sched_advance(next_process, true);
-    } else {
-        // If killed process is not active, just remove it from its 
-        // ring.
-        process_sched_ring_remove(process);
+        process_sched_advance(next_process);
     }
 
 }
@@ -69,7 +87,7 @@ static void process_internal_kill(struct process *process, int code) {
 /// initialize remaining fields (parent/child/sibling/state).
 /// 
 /// Interrupts must be disabled before calling this function.
-static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg) {
+static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg, enum process_state state) {
 
     struct process *process = kalloc(sizeof(struct process));
     if (process == NULL)
@@ -113,6 +131,7 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
 
     // Priority and scheduler ring.
     process->priority = priority;
+    process->state = state;
     process_sched_ring_insert(process);
 
     return process;
@@ -127,8 +146,10 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
 /// waited for by its parent, or if its parent dies.
 static void process_free(struct process *process) {
 
-    // Remove the process from scheduler ring (if relevant).
-    process_sched_ring_remove(process);
+    if (process->state != PROCESS_ZOMBIE) {
+        panic("process_free(...): process->state not ZOMBIE");
+    }
+
     // Remove the process from overall list.
     process_overall_remove(process);
 
@@ -170,8 +191,7 @@ static void process_pit_handler(uint32_t clock) {
 
 void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     
-    process_active = process_alloc(entry, stack_size, 0, "idle", arg);
-    process_active->state = PROCESS_ACTIVE;
+    process_active = process_alloc(entry, stack_size, 0, "idle", arg, PROCESS_SCHED_ACTIVE);
 
     // No parent/child.
     process_active->parent = NULL;
@@ -195,12 +215,10 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     if (priority < 0 || priority >= PROCESS_MAX_PRIORITY)
         return -1;
     
-    struct process *process = process_alloc(entry, stack_size, priority, name, arg);
+    struct process *process = process_alloc(entry, stack_size, priority, name, arg, PROCESS_SCHED_AVAILABLE);
     if (process == NULL)
         return -1; // Allocation error.
     
-    process->state = PROCESS_AVAILABLE;
-
     // Parent is current process.
     process->parent = process_active;
     process->child = NULL;
@@ -208,12 +226,17 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     // Insert the next process in the child linked list of the parent.
     process->sibling = process_active->child;
     process_active->child = process;
+    
+#if PROCESS_DEBUG
+    printf("[%s] process_start(...) -> %s\n", process_active->name, name);
+#endif
 
     // If the new priority is higher than the current, we directly
     // interrupt the execution of the current process and switch to
     // this scheduler ring.
     if (process->priority > process_active->priority) {
-        process_sched_advance(process, false);
+        process_active->state = PROCESS_SCHED_AVAILABLE;
+        process_sched_advance(process);
     }
 
     return process->pid;
@@ -227,7 +250,9 @@ void process_exit(int code) {
 /// Internal function that actually exits from active process.
 void process_internal_exit(int code) {
 
-    // printf("internal exit: %d\n", code);
+#if PROCESS_DEBUG
+    printf("[%s] process_internal_exit(%d)\n", process_active->name, code);
+#endif
 
     process_internal_kill(process_active, code);
     // Never reached.
@@ -273,6 +298,10 @@ pid_t process_wait_pid(pid_t pid, int *exit_code) {
     if (child == NULL)
         return -1;
     
+#if PROCESS_DEBUG
+    printf("[%s] process_wait_pid(%d)\n", process_active->name, pid);
+#endif
+    
     while (child != NULL) {
         if (pid < 0 && child->state == PROCESS_ZOMBIE) {
             // If we search for any child, if we found a zombie we can
@@ -293,25 +322,34 @@ pid_t process_wait_pid(pid_t pid, int *exit_code) {
     // If child == NULL must be pid < 0 (above condition).
     if (child == NULL || child->state != PROCESS_ZOMBIE) {
 
+#if PROCESS_DEBUG
+        printf("[%s] process_wait_pid(...): waiting\n", process_active->name);
+#endif
+
+        struct process *next_process = process_sched_ring_remove(process_active);
+
         // Here, targetted child(ren) are not zombie: pause this process.
         process_active->state = PROCESS_WAIT_CHILD;
-        process_active->state_data.wait_child_pid = pid;
-        process_sched_advance(NULL, true);
+        process_active->wait_child.child_pid = pid;
 
-        // We'll resume here when targetted child exits, and it will 
-        // set the pointer to its own structure.
-        child = process_active->state_data.active_new_zombie_child;
-        pid = child->pid;
+        process_sched_advance(next_process);
+
+        // Here we resume and the child should've set its pointer.
+        child = process_active->sched.new_zombie_child;
+
+#if PROCESS_DEBUG
+        printf("[%s] process_wait_pid(...): resume from %s\n", process_active->name, child->name);
+#endif
 
     }
 
     // Here, child should not be null and its state should be ZOMBIE.
     if (exit_code != NULL)
-        *exit_code = child->state_data.zombie_exit_code;
+        *exit_code = child->zombie.exit_code;
     
     process_free(child);
 
-    return pid;
+    return child->pid;
 
 }
 
@@ -340,11 +378,30 @@ int process_kill(pid_t pid) {
 
 void process_wait_clock(uint32_t clock) {
 
-    process_active->state = PROCESS_WAIT_TIME;
-    process_active->state_data.wait_time_clock = pit_clock() + clock;
+#if PROCESS_DEBUG
+    printf("[%s] process_wait_clock(%d)\n", process_active->name, clock);
+#endif
 
-    process_time_queue_add(process_active);
-    process_sched_advance(NULL, true);
+    if (clock <= pit_clock()) {
+
+        // The target clock is already passed, just advance.
+        process_active->state = PROCESS_SCHED_AVAILABLE;
+        process_sched_advance(NULL);
+
+    } else {
+        
+        struct process *next_process = process_sched_ring_remove(process_active);
+
+        process_active->state = PROCESS_WAIT_TIME;
+        process_active->wait_time.target_clock = clock;
+
+        // Add the process to the time queue and advanced scheduling while
+        // removing it from the ring.
+        process_time_queue_add(process_active);
+        
+        process_sched_advance(next_process);
+
+    }
 
 }
 
@@ -354,10 +411,10 @@ void process_debug(void) {
     printf("process %p\n", process_active);
     printf("- %s (%d)\n", process_active->name, process_active->pid);
 
-    if (process_active->sched_prev)
-        printf("- sched_prev: %s (%d)\n", process_active->sched_prev->name, process_active->sched_prev->pid);
-    if (process_active->sched_next)
-        printf("- sched_next: %s (%d)\n", process_active->sched_next->name, process_active->sched_next->pid);
+    // if (process_active->sched_prev)
+    //     printf("- sched_prev: %s (%d)\n", process_active->sched_prev->name, process_active->sched_prev->pid);
+    // if (process_active->sched_next)
+    //     printf("- sched_next: %s (%d)\n", process_active->sched_next->name, process_active->sched_next->pid);
 
     if (process_active->parent)
         printf("- parent: %s (%d)\n", process_active->parent->name, process_active->parent->pid);
