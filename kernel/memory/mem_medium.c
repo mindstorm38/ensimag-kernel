@@ -4,8 +4,8 @@
  * Ce code est distribué sous la licence GPLv3+.      *
  ******************************************************/
 
-#include "memory.h"
 #include "mem_internals.h"
+#include "memory.h"
 
 
 static size_t power2(size_t size) {
@@ -39,7 +39,10 @@ static void alloc_tzl_chunk(size_t index) {
 
         // We reached the next medium exponant, therefore we need to allocate a new block
         // at this particular index, therefore it exists and we can return.
-        mem_realloc_medium();
+        if (mem_realloc_medium() == 0) {
+
+        }
+
         // The chunk we allocated has no next chunk.
         *((void **) arena.tzl[index]) = NULL;
 

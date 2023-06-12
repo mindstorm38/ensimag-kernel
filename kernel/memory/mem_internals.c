@@ -6,6 +6,7 @@
 
 #include "stdint.h"
 #include "stddef.h"
+#include "stdio.h"
 
 #include "memory.h"
 #include "mem_internals.h"
@@ -70,8 +71,7 @@ size_t mem_realloc_small() {
     arena.chunkpool = page_alloc(size);
 
     if (!arena.chunkpool) {
-        // Alloc failed
-        return 0;
+        panic("mem_realloc_small(): page_alloc failed for size %d\n", size);
     }
 
     arena.small_next_exponant++;
@@ -91,8 +91,7 @@ size_t mem_realloc_medium() {
     arena.tzl[exp] = page_alloc(size * 2);
 
     if (!arena.tzl[exp]) {
-        // Alloc failed.
-        return 0;
+        panic("mem_realloc_medium(): page_alloc failed for size %d\n", size * 2);
     }
 
     // align allocation to a multiple of the size
