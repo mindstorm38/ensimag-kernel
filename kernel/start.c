@@ -53,5 +53,5 @@ int idle(void *arg) {
 
 static int test_run_wrapper(void *arg) {
 	(void) arg;
-	return test_run(8);
+	return test_run(9);
 }
