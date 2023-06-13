@@ -11,9 +11,9 @@
 #include "pit.h"
 
 
-static pid_t pid_counter = 0;
 // This context is never used at restoration.
 static struct process_context dummy_context;
+
 
 /// Internal function that allocate a process given. Callers of this
 /// function ('process_idle' and 'process_start' only) need to 
@@ -57,7 +57,6 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
 
     // Initialize other fields
     strcpy(process->name, name);
-    process->pid = pid_counter++;
 
     // Overall list.
     process_overall_add(process);
@@ -419,31 +418,5 @@ void process_wait_clock(uint32_t clock) {
         process_sched_advance(next_process);
 
     }
-
-}
-
-
-void process_debug(void) {
-
-    printf("process %p\n", process_active);
-    printf("- %s (%d)\n", process_active->name, process_active->pid);
-
-    // if (process_active->sched_prev)
-    //     printf("- sched_prev: %s (%d)\n", process_active->sched_prev->name, process_active->sched_prev->pid);
-    // if (process_active->sched_next)
-    //     printf("- sched_next: %s (%d)\n", process_active->sched_next->name, process_active->sched_next->pid);
-
-    if (process_active->parent)
-        printf("- parent: %s (%d)\n", process_active->parent->name, process_active->parent->pid);
-
-    printf("- children:");
-    struct process *child = process_active->child;
-    while (child) {
-        printf(" %s (%d)", child->name, child->pid);
-        child = child->sibling;
-    }
-    printf("\n");
-
-    printf("- esp: %p\n", (void *) process_active->context.esp);
 
 }

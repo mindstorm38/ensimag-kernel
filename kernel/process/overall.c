@@ -1,8 +1,10 @@
+#include "process.h"
 #include "process_internals.h"
 
 
 /// Head of the all-processes linked list head.
 static struct process *overall_head = NULL;
+static pid_t pid_counter = 0;
 
 
 void process_overall_add(struct process *process) {
@@ -12,6 +14,8 @@ void process_overall_add(struct process *process) {
     
     if (overall_head != NULL)
         overall_head->overall_prev = process;
+
+    process->pid = pid_counter++;
 
     overall_head = process;
 

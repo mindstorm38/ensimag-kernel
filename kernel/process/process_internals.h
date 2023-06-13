@@ -22,8 +22,12 @@ enum process_state {
     PROCESS_WAIT_QUEUE,
     PROCESS_WAIT_SEMAPHORE,
     PROCESS_WAIT_IO,
+    /// The process is waiting for termination of one of its children.
     PROCESS_WAIT_CHILD,
+    /// The process is waiting for reaching a target clock count.
     PROCESS_WAIT_TIME,
+    /// The process is dead and is waiting termination by its parent,
+    /// if the parent is itself a zombie, the process is just freed.
     PROCESS_ZOMBIE,
 };
 
@@ -37,6 +41,9 @@ struct process_state_sched {
     /// Used when resuming from the `PROCESS_WAIT_CHILD`, it gives a
     /// pointer to the child that became a zombie.
     struct process *new_zombie_child;
+    /// Used when resuming from the `PROCESS_WAIT_QUEUE`, it indicates
+    /// if the process was resumed by a reset.
+    bool wait_queue_reset;
 };
 
 /// For process that are in `PROCESS_WAIT_CHILD`.
@@ -49,6 +56,11 @@ struct process_state_wait_time {
     /// Target clock time at which the process should be rescheduled.
     uint32_t target_clock;
     /// Next process in the wait time linked list.
+    struct process *next;
+};
+
+struct process_state_wait_queue {
+    /// Next process in the wait queue linked list.
     struct process *next;
 };
 
@@ -91,6 +103,8 @@ struct process {
         struct process_state_wait_child wait_child;
         /// Valid for `PROCESS_WAIT_TIME`.
         struct process_state_wait_time wait_time;
+        /// Valid for `PROCESS_WAIT_QUEUE`.
+        struct process_state_wait_queue wait_queue;
         /// Valid for `PROCESS_ZOMBIE`.
         struct process_state_zombie zombie;
     };
@@ -104,8 +118,40 @@ struct process {
     int priority;
 };
 
+struct process_queue {
+    /// When the queue is free to be used, it is registered here.
+    struct process_queue *next_free_queue;
+    /// Queue ID.
+    qid_t qid;
+    /// Message list allocation. This is null when the queue is not
+    /// present (sentinel).
+    int *messages;
+    /// Capacity of the queue.
+    size_t capacity;
+    /// Internal message count.
+    size_t length;
+    /// Read index of the queue.
+    size_t read_index;
+    /// Write index of the queue.
+    size_t write_index;
+    /// Head of the waiting processes. When length is equal to 
+    /// capacity then theses processes are waiting for writing, if
+    /// length is equal to zero then the processes are waiting for
+    /// reading.
+    struct process *waiting_process;
+};
+
 
 extern struct process *process_active;
+
+
+/// Register the process in the overall linked list. This also set
+/// the PID of the given process.
+void process_overall_add(struct process *process);
+/// Remove the process from the overall linked list.
+void process_overall_remove(struct process *process);
+/// Get a process from its PID.
+struct process *process_from_pid(pid_t pid);
 
 
 /// Function defined in assembly (process_context.S).
@@ -114,6 +160,7 @@ void process_context_switch(struct process_context *prev_ctx, struct process_con
 void process_internal_exit(int code) __attribute__((noreturn));
 /// Method defined in assembly to be sure that EAX don't get clobbered.
 void process_implicit_exit(void) __attribute__((noreturn));
+
 
 /// Internal function used to insert a process in its scheduler ring.
 ///
@@ -141,9 +188,7 @@ struct process *process_sched_ring_find(int max_priority);
 /// next process of the ring is used (only if next process isn't 
 /// forced).
 ///
-/// The next process state is set to ACTIVE, and the previous process
-/// state is untouched, so the caller must set it before calling this
-/// function.
+/// The next process state is set to ACTIVE.
 void process_sched_advance(struct process *next_process);
 /// Change the scheduling priority of the given process, this function
 /// automatically handles context switch if the next priority is
@@ -154,6 +199,7 @@ int process_sched_set_priority(struct process *process, int new_priority);
 /// Internal function that handle pit interrupts for scheduler.
 void process_sched_pit_handler(uint32_t clock);
 
+
 /// Add the process to the clock queue, the process must be in the
 /// `PROCESS_WAIT_TIME` state with corresponding data.
 void process_time_queue_add(struct process *process);
@@ -163,12 +209,5 @@ void process_time_queue_remove(struct process *process);
 /// Internal function that handle pit interrupts for clock. It will
 /// automatically reschedule processes that reach their target clock.
 void process_time_pit_handler(uint32_t clock);
-
-/// Register the process in the overall linked list.
-void process_overall_add(struct process *process);
-/// Remove the process from the overall linked list.
-void process_overall_remove(struct process *process);
-/// Get a process from its PID.
-struct process *process_from_pid(pid_t pid);
 
 #endif

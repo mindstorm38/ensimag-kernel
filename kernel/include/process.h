@@ -11,7 +11,8 @@
 #define PROCESS_MAX_PRIORITY 256
 
 
-typedef int32_t pid_t;
+typedef int pid_t;
+typedef int qid_t;
 
 /// Type alias for process entry point.
 typedef int (*process_entry_t)(void *);
@@ -43,6 +44,15 @@ int process_kill(pid_t pid);
 /// Pause the process for given number of clock cycles.
 void process_wait_clock(uint32_t clock);
 
-void process_debug(void);
+/// Create a message queue with the given capacity of messages.
+qid_t process_queue_create(size_t capacity);
+/// Delete a queue from its ID.
+int process_queue_delete(qid_t qid);
+/// Send a message to a queue of given ID.
+int process_queue_send(qid_t qid, int message);
+/// Receive a message from a queue of given ID.
+int process_queue_receive(qid_t qid, int *message);
+/// Remove all messages from a queue of given ID.
+int process_queue_reset(qid_t qid);
 
 #endif
