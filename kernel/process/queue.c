@@ -57,38 +57,6 @@ static struct process *process_queue_pop_next(struct process_queue *queue) {
 
 }
 
-// /// Resume a waiting process.
-// static void process_queue_resume(struct process_queue *queue) {
-    
-// #if QUEUE_DEBUG
-//     printf("[%s] process_queue_resume(%d)\n", process_active->name, queue->qid);
-// #endif
-
-//     struct process *next_process = process_queue_pop_next(wait_process);
-
-//     if (next_process != NULL && next_process->priority >= priority) {
-
-//         next_process->state = PROCESS_SCHED_AVAILABLE;
-//         next_process->sched.wait_queue_reset = false;
-
-//         process_sched_ring_insert(next_process);
-
-//         // Force advance if we wake a higher priority process.
-//         if (higher_wake_process->priority > process_active->priority) {
-
-// #if QUEUE_DEBUG
-//             printf("[%s] process_queue_resume(...): schedule advance\n", process_active->name);
-// #endif
-
-//             process_active->state = PROCESS_SCHED_AVAILABLE;
-//             process_sched_advance(higher_wake_process);
-
-//         }
-
-//     }
-
-// }
-
 /// Resume all waiting processes and sset the reset flag to true so
 /// they will return -1 on return.
 static void process_queue_resume_reset(struct process_queue *queue) {
