@@ -1844,12 +1844,14 @@ test13(void)
 	pid3 = start(psender, 4000, 129, "psender3", &ps3);
 	for (i=0; i<2; i++) {
 		assert(preceive(fid, &msg) == 0);
+		printf("msg: %d, got: %c, expected: %c\n", msg, msg, 'a' + i);
 		assert(msg == 'a' + i);
 	}
 	chprio(pid1, 129);
 	chprio(pid3, 131);
 	for (i=0; i<2; i++) {
 		assert(preceive(fid, &msg) == 0);
+		printf("msg: %d, got: %c, expected: %c\n", msg, msg, 'c' + i);
 		assert(msg == 'c' + i);
 	}
 	chprio(pid1, 127);
@@ -1857,6 +1859,7 @@ test13(void)
 	chprio(pid3, 125);
 	for (i=0; i<6; i++) {
 		assert(preceive(fid, &msg) == 0);
+		printf("msg: %d, got: %c, expected: %c\n", msg, msg, 'e' + i);
 		assert(msg == 'e' + i);
 	}
 	chprio(pid1, 125);

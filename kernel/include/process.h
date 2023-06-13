@@ -52,6 +52,8 @@ int process_queue_delete(qid_t qid);
 int process_queue_send(qid_t qid, int message);
 /// Receive a message from a queue of given ID.
 int process_queue_receive(qid_t qid, int *message);
+/// Count waiting processes and messages on a queue of given ID.
+int process_queue_count(qid_t qid, int *count);
 /// Remove all messages from a queue of given ID.
 int process_queue_reset(qid_t qid);
 

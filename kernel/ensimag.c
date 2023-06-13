@@ -38,7 +38,8 @@ int getprio(int pid) {
 }
 
 int chprio(int pid, int newprio) {
-    return process_set_priority(pid, newprio - 1);
+    int prio = process_set_priority(pid, newprio - 1);
+    return prio < 0 ? prio : (prio + 1);
 }
 
 int waitpid(int pid, int *retval) {
@@ -51,4 +52,28 @@ int kill(int pid) {
 
 void wait_clock(unsigned long clock) {
     process_wait_clock(clock);
+}
+
+int pcount(int fid, int *count) {
+    return process_queue_count(fid, count);
+}
+
+int pcreate(int count) {
+    return process_queue_create(count);
+}
+
+int pdelete(int fid) {
+    return process_queue_delete(fid);
+}
+
+int preceive(int fid, int *message) {
+    return process_queue_receive(fid, message);
+}
+
+int preset(int fid) {
+    return process_queue_reset(fid);
+}
+
+int psend(int fid, int message) {
+    return process_queue_send(fid, message);
 }

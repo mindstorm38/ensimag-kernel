@@ -172,6 +172,14 @@ int process_sched_set_priority(struct process *process, int new_priority) {
     if (prev_priority == new_priority)
         return prev_priority;
 
+    // If the process is not scheduled and not zombie, it must be 
+    // waiting so we only need to change its priority without doing
+    // anything.
+    if (process->state != PROCESS_SCHED_ACTIVE && process->state != PROCESS_SCHED_AVAILABLE) {
+        process->priority = new_priority;
+        return prev_priority;
+    }
+
     // Remove the process from its current ring.
     struct process *next_process = process_sched_ring_remove(process);
 
@@ -217,6 +225,7 @@ int process_sched_set_priority(struct process *process, int new_priority) {
     }
 
     if (next_process != NULL && next_process != process) {
+        process_active->state = PROCESS_SCHED_AVAILABLE;
         process_sched_advance(next_process);
     }
 

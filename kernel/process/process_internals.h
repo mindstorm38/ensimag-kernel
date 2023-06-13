@@ -7,6 +7,7 @@
 
 
 #define PROCESS_DEBUG 0
+#define QUEUE_DEBUG 0
 
 
 struct process;
@@ -62,6 +63,8 @@ struct process_state_wait_time {
 struct process_state_wait_queue {
     /// Next process in the wait queue linked list.
     struct process *next;
+    /// The message waiting to be written.
+    int message;
 };
 
 /// Zombie-specific state for process that are in `PROCESS_ZOMBIE`.

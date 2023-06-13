@@ -53,5 +53,11 @@ int idle(void *arg) {
 
 static int test_run_wrapper(void *arg) {
 	(void) arg;
-	return test_run(9);
+	for (int i = 1; i <= 20; i++) {
+		printf("== RUNNING TEST %d ==\n", i);
+		int ret = test_run(i);
+		if (ret != 0)
+			return ret;
+	}
+	return 0;
 }
