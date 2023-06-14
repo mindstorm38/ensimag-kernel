@@ -15,6 +15,10 @@
 static struct process_context dummy_context;
 
 
+// TODO: Create a stack overflow detection with a sentinel at bottom
+// of the stack, will be easier to debug.
+
+
 /// Internal function that allocate a process given. Callers of this
 /// function ('process_idle' and 'process_start' only) need to 
 /// initialize remaining fields (parent/child/sibling/state).
