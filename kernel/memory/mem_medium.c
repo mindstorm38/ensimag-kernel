@@ -23,11 +23,11 @@ static size_t power2(size_t size) {
 
 // Internal function that ensures that the chunk size (2**index) is available 
 // in its linked list.
-static void alloc_tzl_chunk(size_t index) {
+static bool alloc_tzl_chunk(size_t index) {
 
     if (arena.tzl[index]) {
         // A chunk already exists for this size.
-        return;
+        return true;
     } else if (index >= FIRST_ALLOC_MEDIUM_EXPOSANT + arena.medium_next_exponant) {
 
         // It can happen that index we be greater than 'FIRST_ALLOC_MEDIUM_EXPOSANT + 1'
@@ -39,14 +39,12 @@ static void alloc_tzl_chunk(size_t index) {
 
         // We reached the next medium exponant, therefore we need to allocate a new block
         // at this particular index, therefore it exists and we can return.
-        if (mem_realloc_medium() == 0) {
-
-        }
+        if (mem_realloc_medium() == 0)
+            return false;
 
         // The chunk we allocated has no next chunk.
         *((void **) arena.tzl[index]) = NULL;
 
-        return;
     } else {
 
         // In this case we don't have any chunk at this level, so we split the next chunk.
@@ -55,7 +53,8 @@ static void alloc_tzl_chunk(size_t index) {
         size_t size = 1 << index;
 
         // Here we need to split the higher chunk into two chunks of the current size.
-        alloc_tzl_chunk(index + 1);
+        if (!alloc_tzl_chunk(index + 1))
+            return false;
 
         // Get the pointer to the two chunks, which is in the linked list of a greater size.
         void *chunk0 = arena.tzl[index + 1];
@@ -73,6 +72,8 @@ static void alloc_tzl_chunk(size_t index) {
 
     }
 
+    return true;
+
 }
 
 void *kalloc_medium(size_t size) {
@@ -81,9 +82,10 @@ void *kalloc_medium(size_t size) {
     // assert(size > SMALLALLOC);
 
     size_t size_marked = size + MARK_SIZE;
-    size_t index = power2(size_marked); 
-    // printf("size: %ld, full_size: %ld, index: %d\n", size, full_size, index);
-    alloc_tzl_chunk(index);
+    size_t index = power2(size_marked);
+
+    if (!alloc_tzl_chunk(index))
+        return NULL;
 
     // Extract the chunk from the head of the linked list.
     void *alloc_chunk = arena.tzl[index];

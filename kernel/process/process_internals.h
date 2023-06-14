@@ -21,13 +21,14 @@ enum process_state {
     /// The process is in the scheduler ring and is waiting to be
     /// executed.
     PROCESS_SCHED_AVAILABLE,
-    PROCESS_WAIT_QUEUE,
-    PROCESS_WAIT_SEMAPHORE,
-    PROCESS_WAIT_IO,
     /// The process is waiting for termination of one of its children.
     PROCESS_WAIT_CHILD,
     /// The process is waiting for reaching a target clock count.
     PROCESS_WAIT_TIME,
+    /// The process is waiting to read/write from/to a process queue.
+    PROCESS_WAIT_QUEUE,
+    // PROCESS_WAIT_SEMAPHORE,
+    // PROCESS_WAIT_IO,
     /// The process is dead and is waiting termination by its parent,
     /// if the parent is itself a zombie, the process is just freed.
     PROCESS_ZOMBIE,
@@ -223,9 +224,10 @@ void process_time_pit_handler(uint32_t clock);
 
 
 /// Change the priority of a process that is currently waiting for a
-/// queue. 
-///
-/// The process must be in `PROCESS_WAIT_QUEUE` state.
+/// queue. The process must be in `PROCESS_WAIT_QUEUE` state.
 void process_queue_set_priority(struct process *process, int new_priority);
+/// Kill a process that is waiting for queue. The process must be in
+/// `PROCESS_WAIT_QUEUE` state.
+void process_queue_kill_process(struct process *process);
 
 #endif

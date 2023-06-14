@@ -16,6 +16,9 @@ void *kalloc_small(size_t size) {
     if (arena.chunkpool == NULL) {
         
         unsigned long size = mem_realloc_small();
+        if (size == 0)
+            return NULL;
+        
         void *chunk = arena.chunkpool;
 
         // This loops for N-1 chunks.

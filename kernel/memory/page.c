@@ -3,8 +3,8 @@
 #include "stdbool.h"
 #include "stddef.h"
 #include "string.h"
+#include "stdint.h"
 #include "stdio.h"
-#include <stdint.h>
 
 // Symbols defined in kernel.lds
 extern uint8_t mem_heap;
@@ -15,13 +15,6 @@ static size_t page_count = 0;
 static size_t meta_page_count = 0;
 static size_t alloc_count = 0;
 
-
-// static bool page_is_allocated(size_t num) {
-//     size_t index = num / 8;
-//     size_t bit = num % 8;
-//     uint8_t *slot = &mem_heap + index;
-//     return (*slot & (1 << bit)) != 0;
-// }
 
 static void page_set_allocated(size_t num, bool allocated) {
     size_t index = num / 8;
@@ -68,7 +61,9 @@ void page_init() {
 
 void *page_alloc(size_t size) {
 
-    // assert(count > 0);
+    assert(size > 0);
+
+    // printf("page_alloc(%d)\n", size);
 
     size_t count = page_count_padded(size);
 
@@ -129,8 +124,11 @@ void *page_alloc(size_t size) {
 }
 
 void page_free(void *ptr, size_t size) {
-    
-    printf("page_free(%p, %d)\n", ptr, size);
+
+    // printf("page_free(%p, %d)\n", ptr, size);
+
+    assert(ptr != NULL);
+    assert(size > 0);
     
     size_t count = page_count_padded(size);
 

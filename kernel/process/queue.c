@@ -161,7 +161,7 @@ qid_t process_queue_create(size_t capacity) {
     printf("[%s] process_queue_create(%d)\n", process_active->name, capacity);
 #endif
 
-    if (capacity == 0 || queues_count >= QUEUES_CAPACITY)
+    if (capacity == 0 || (free_queue == NULL && queues_count >= QUEUES_CAPACITY))
         return -1;
 
     struct process_queue *queue;
@@ -177,6 +177,7 @@ qid_t process_queue_create(size_t capacity) {
     if (free_queue != NULL) {
         queue = free_queue;
         free_queue = queue->next_free_queue;
+        queue->next_free_queue = NULL;
     } else {
         qid_t next_id = queues_count++;
         queue = &queues[next_id];
@@ -400,4 +401,8 @@ void process_queue_set_priority(struct process *process, int new_priority) {
     process_queue_remove_process(process->wait_queue.queue, process);
     process_queue_add_process(process->wait_queue.queue, process);
 
+}
+
+void process_queue_kill_process(struct process *process) {
+    process_queue_remove_process(process->wait_queue.queue, process);
 }

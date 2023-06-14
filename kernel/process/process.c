@@ -165,10 +165,11 @@ static void process_internal_kill(struct process *process, int code, bool wake_p
         }
 
     } else if (process->state == PROCESS_WAIT_TIME) {
-
         // If the process was waiting time, remove it from the queue.
         process_time_queue_remove(process);
-
+    } else if (process->state == PROCESS_WAIT_QUEUE) {
+        // If the process is waiting queue, remove it from its queue.
+        process_queue_kill_process(process);
     } else {
         panic("process_internal_kill(...): unsupported state when killing: %d\n", process->state);
     }

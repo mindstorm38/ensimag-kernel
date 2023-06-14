@@ -71,7 +71,7 @@ size_t mem_realloc_small() {
     arena.chunkpool = page_alloc(size);
 
     if (!arena.chunkpool) {
-        panic("mem_realloc_small(): page_alloc failed for size %d\n", size);
+        return 0;
     }
 
     arena.small_next_exponant++;
@@ -91,7 +91,7 @@ size_t mem_realloc_medium() {
     arena.tzl[exp] = page_alloc(size * 2);
 
     if (!arena.tzl[exp]) {
-        panic("mem_realloc_medium(): page_alloc failed for size %d\n", size * 2);
+        return 0;
     }
 
     // align allocation to a multiple of the size
