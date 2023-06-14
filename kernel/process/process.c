@@ -170,7 +170,7 @@ static void process_internal_kill(struct process *process, int code, bool wake_p
         process_time_queue_remove(process);
 
     } else {
-        panic("process_internal_kill(...): unsupported state when exiting: %d\n", process->state);
+        panic("process_internal_kill(...): unsupported state when killing: %d\n", process->state);
     }
 
     // Here we want to free all child processes because they will never 
@@ -303,8 +303,24 @@ int process_set_priority(pid_t pid, int priority) {
     struct process *process = process_from_pid(pid);
     if (process == NULL || process->state == PROCESS_ZOMBIE)
         return -1;
+    
+    int prev_priority = process->priority;
+    if (priority == prev_priority)
+        return prev_priority; // No change to do.
 
-    return process_sched_set_priority(process, priority);
+    if (process->state == PROCESS_SCHED_ACTIVE || process->state == PROCESS_SCHED_AVAILABLE) {
+        // The process is scheduled, call the scheduler.
+        process_sched_set_priority(process, priority);
+    } else if (process->state == PROCESS_WAIT_QUEUE) {
+        // The process is waiting for a queue message, changing 
+        // priority is a bit special here.
+        process_queue_set_priority(process, priority);
+    } else {
+        // Other wait states doesn't require special priority handling.
+        process->priority = priority;
+    }
+
+    return prev_priority;
 
 }
 

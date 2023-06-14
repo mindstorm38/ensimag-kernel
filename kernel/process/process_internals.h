@@ -11,6 +11,7 @@
 
 
 struct process;
+struct process_queue;
 
 /// States that a process can take, used for scheduling.
 enum process_state {
@@ -42,6 +43,9 @@ struct process_state_sched {
     /// Used when resuming from the `PROCESS_WAIT_CHILD`, it gives a
     /// pointer to the child that became a zombie.
     struct process *new_zombie_child;
+    /// The process is resumed from `PROCESS_WAIT_QUEUE` because it
+    /// was waiting to receive a message, the message is given here.
+    int wait_queue_message;
     /// Used when resuming from the `PROCESS_WAIT_QUEUE`, it indicates
     /// if the process was resumed by a reset.
     bool wait_queue_reset;
@@ -54,15 +58,19 @@ struct process_state_wait_child {
 };
 
 struct process_state_wait_time {
-    /// Target clock time at which the process should be rescheduled.
-    uint32_t target_clock;
     /// Next process in the wait time linked list.
     struct process *next;
+    /// Target clock time at which the process should be rescheduled.
+    uint32_t target_clock;
 };
 
 struct process_state_wait_queue {
+    /// Previous process in the wait queue linked list.
+    struct process *prev;
     /// Next process in the wait queue linked list.
     struct process *next;
+    /// Pointer to the queue currently used by the process.
+    struct process_queue *queue;
     /// The message waiting to be written.
     int message;
 };
@@ -98,7 +106,7 @@ struct process {
     struct process_context context;
     /// State of the process.
     enum process_state state;
-    /// State union depending on the state.
+    /// State "tagged union" depending on the state.
     union {
         /// Valid for `PROCESS_SCHED_ACTIVE` or `PROCESS_SCHED_AVAILABLE`.
         struct process_state_sched sched;
@@ -141,7 +149,7 @@ struct process_queue {
     /// capacity then theses processes are waiting for writing, if
     /// length is equal to zero then the processes are waiting for
     /// reading.
-    struct process *waiting_process;
+    struct process *wait_process;
 };
 
 
@@ -195,10 +203,10 @@ struct process *process_sched_ring_find(int max_priority);
 void process_sched_advance(struct process *next_process);
 /// Change the scheduling priority of the given process, this function
 /// automatically handles context switch if the next priority is
-/// higher than the current process. Previous priority is returned.
+/// higher than the current process.
 ///
-/// The given process must not be a zombie.
-int process_sched_set_priority(struct process *process, int new_priority);
+/// The given process must be in `PROCESS_SCHED_*` state.
+void process_sched_set_priority(struct process *process, int new_priority);
 /// Internal function that handle pit interrupts for scheduler.
 void process_sched_pit_handler(uint32_t clock);
 
@@ -212,5 +220,12 @@ void process_time_queue_remove(struct process *process);
 /// Internal function that handle pit interrupts for clock. It will
 /// automatically reschedule processes that reach their target clock.
 void process_time_pit_handler(uint32_t clock);
+
+
+/// Change the priority of a process that is currently waiting for a
+/// queue. 
+///
+/// The process must be in `PROCESS_WAIT_QUEUE` state.
+void process_queue_set_priority(struct process *process, int new_priority);
 
 #endif

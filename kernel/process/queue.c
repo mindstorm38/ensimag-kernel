@@ -26,59 +26,106 @@ static struct process_queue *process_queue_from_qid(qid_t qid) {
 
 }
 
+/// Add the given process to the queue's waiting list. The process
+/// must be in WAIT_QUEUE state.
+static void process_queue_add_process(struct process_queue *queue, struct process *process) {
+    process->wait_queue.prev = NULL;
+    process->wait_queue.next = queue->wait_process;
+    if (queue->wait_process != NULL)
+        queue->wait_process->wait_queue.prev = process;
+    queue->wait_process = process;
+}
+
+/// Remove the given process from the queue's waiting list. The 
+/// process must be in WAIT_QUEUE state.
+static void process_queue_remove_process(struct process_queue *queue, struct process *process) {
+    // If it's the head of the queue.
+    if (process->wait_queue.prev == NULL) {
+        queue->wait_process = process->wait_queue.next;
+        if (queue->wait_process != NULL)
+            queue->wait_process->wait_queue.prev = NULL;
+    } else {
+        struct process *prev_process = process->wait_queue.prev;
+        struct process *next_process = process->wait_queue.next;
+        prev_process->wait_queue.next = next_process;
+        if (next_process != NULL)
+            next_process->wait_queue.prev = prev_process;
+    }
+}
+
+/// Put the active process in wait state for the given queue. 
+/// The message can be given if relevant (writing wait).
+/// The function returns true if resuming is due to a reset.
+static bool process_queue_wait(struct process_queue *queue, int message) {
+
+    // Queue is full, just block this process until the message
+    // has been added.
+    struct process *next_process = process_sched_ring_remove(process_active);
+    process_active->state = PROCESS_WAIT_QUEUE;
+    process_active->wait_queue.message = message;
+    process_active->wait_queue.queue = queue;
+    process_queue_add_process(queue, process_active);
+
+    // Schedule a new process.
+    process_sched_advance(next_process);
+
+    // When resuming, we know that the receiving process has
+    // written our message.
+    return process_active->sched.wait_queue_reset;
+
+}
+
 /// This function find the next process that should have higher 
 /// priority in the given list. Returning null if no process in
 /// the queue.
 static struct process *process_queue_pop_next(struct process_queue *queue) {
 
-    struct process **wait_process_ptr = &queue->waiting_process;
-    struct process **wake_process_ptr = NULL;
+    struct process *wait_process = queue->wait_process;
+    struct process *candidate_process = NULL;
 
-    while (*wait_process_ptr != NULL) {
+    while (wait_process != NULL) {
 
         // If all processes in the list have the same priority, then
         // the last one will be the awaken one.
-        if (wake_process_ptr == NULL || (*wake_process_ptr)->priority <= (*wait_process_ptr)->priority)
-            wake_process_ptr = wait_process_ptr;
+        if (candidate_process == NULL || candidate_process->priority <= wait_process->priority)
+            candidate_process = wait_process;
 
-        wait_process_ptr = &(*wait_process_ptr)->wait_queue.next;
+        wait_process = wait_process->wait_queue.next;
 
     }
 
-    struct process *wake_process = NULL;
-
-    if (wake_process_ptr != NULL) {
-        // Remove this process from the waiting ones.
-        wake_process = *wake_process_ptr;
-        *wake_process_ptr = wake_process->wait_queue.next;
+    if (candidate_process != NULL) {
+        process_queue_remove_process(queue, candidate_process);
     }
 
-    return wake_process;
+    return candidate_process;
 
 }
 
-/// Resume all waiting processes and sset the reset flag to true so
+/// Resume all waiting processes and set the reset flag to true so
 /// they will return -1 on return.
 static void process_queue_resume_reset(struct process_queue *queue) {
 
-    struct process *waiting_process = queue->waiting_process;
+    struct process *wait_process = queue->wait_process;
     struct process *wake_process = NULL;
 
-    while (waiting_process != NULL) {
+    while (wait_process != NULL) {
 
-        if (wake_process == NULL || wake_process->priority < waiting_process->priority)
-            wake_process = waiting_process;
+        if (wake_process == NULL || wake_process->priority < wait_process->priority)
+            wake_process = wait_process;
         
-        waiting_process->state = PROCESS_SCHED_AVAILABLE;
-        waiting_process->sched.wait_queue_reset = true;
+        // Save the next process here because state is changed.
+        struct process *next_process = wait_process->wait_queue.next;
 
-        process_sched_ring_insert(waiting_process);
+        wait_process->state = PROCESS_SCHED_AVAILABLE;
+        wait_process->sched.wait_queue_reset = true;
+        process_sched_ring_insert(wait_process);
 
-        waiting_process = waiting_process->wait_queue.next;
+        wait_process = next_process;
 
     }
 
-    queue->waiting_process = NULL;
+    queue->wait_process = NULL;
 
     // The highest priority process has greater priority than running
     // process? Schedule it.
@@ -87,6 +134,25 @@ static void process_queue_resume_reset(struct process_queue *queue) {
         process_sched_advance(wake_process);
     }
 
+}
+
+/// Send a message to a queue (without checking if space is available).
+/// It returns the previous length.
+static size_t process_queue_raw_write(struct process_queue *queue, int message) {
+    queue->messages[queue->write_index] = message;
+    if (++queue->write_index == queue->capacity)
+        queue->write_index = 0;
+    return queue->length++;
+}
+
+/// Receive a message from a queue (without checking if space is available).
+/// It returns the previous length.
+static size_t process_queue_raw_read(struct process_queue *queue, int *message) {
+    if (message != NULL)
+        *message = queue->messages[queue->read_index];
+    if (++queue->read_index == queue->capacity)
+        queue->read_index = 0;
+    return queue->length--;
 }
 
 qid_t process_queue_create(size_t capacity) {
@@ -100,7 +166,11 @@ qid_t process_queue_create(size_t capacity) {
 
     struct process_queue *queue;
 
-    int *messages = kalloc(sizeof(int) * capacity);
+    size_t messages_alloc;
+    if (__builtin_mul_overflow(sizeof(int), capacity, &messages_alloc))
+        return -1;
+
+    int *messages = kalloc(messages_alloc);
     if (messages == NULL)
         return -1;
 
@@ -114,12 +184,12 @@ qid_t process_queue_create(size_t capacity) {
     }
 
     queue->next_free_queue = NULL;
+    queue->messages = messages;
     queue->capacity = capacity;
     queue->length = 0;
-    queue->messages = messages;
     queue->read_index = 0;
     queue->write_index = 0;
-    queue->waiting_process = NULL;
+    queue->wait_process = NULL;
 
     return queue->qid;
 
@@ -158,50 +228,41 @@ int process_queue_send(qid_t qid, int message) {
         return -1;
 
     if (queue->length == queue->capacity) {
-        
-        // Queue is full, just block this process until the message
-        // has been added.
-        struct process *next_process = process_sched_ring_remove(process_active);
 
-        process_active->state = PROCESS_WAIT_QUEUE;
-        process_active->wait_queue.next = queue->waiting_process;
-        process_active->wait_queue.message = message;
-        queue->waiting_process = process_active;
+#if QUEUE_DEBUG
+        printf("[%s] process_queue_send(...): length == capacity (%d)\n", process_active->name, queue->length);
+#endif
 
-        // Schedule a new process.
-        process_sched_advance(next_process);
-
-        // When resuming, we know that the receiving process has
-        // written our message.
-        if (process_active->sched.wait_queue_reset)
+        if (process_queue_wait(queue, message))
             return -1;
 
     } else {
-        
-        queue->messages[queue->write_index] = message;
 
-        if (++queue->write_index == queue->capacity)
-            queue->write_index = 0;
+        if (queue->length == 0) {
 
-        if (queue->length++ == 0) {
-            
             // If queue capacity was 0 and a process is waiting (must
             // be for reading) then we re-schedule it.
             struct process *next_process = process_queue_pop_next(queue);
-            if (next_process == NULL)
+            if (next_process != NULL) {
+
+                next_process->state = PROCESS_SCHED_AVAILABLE;
+                next_process->sched.wait_queue_reset = false;
+                next_process->sched.wait_queue_message = message;
+
+                process_sched_ring_insert(next_process);
+
+                if (next_process->priority > process_active->priority) {
+                    process_active->state = PROCESS_SCHED_AVAILABLE;
+                    process_sched_advance(next_process);
+                }
+
                 return 0;
 
-            next_process->state = PROCESS_SCHED_AVAILABLE;
-            next_process->sched.wait_queue_reset = false;
-
-            process_sched_ring_insert(next_process);
-
-            if (next_process->priority > process_active->priority) {
-                process_active->state = PROCESS_SCHED_AVAILABLE;
-                process_sched_advance(next_process);
             }
 
         }
+
+        process_queue_raw_write(queue, message);
 
     }
 
@@ -221,51 +282,45 @@ int process_queue_receive(qid_t qid, int *message) {
     
     if (queue->length == 0) {
 
-        // The queue is empty so we wait for a space.
-        struct process *next_process = process_sched_ring_remove(process_active);
+#if QUEUE_DEBUG
+        printf("[%s] process_queue_receive(...): length == 0\n", process_active->name);
+#endif
 
-        process_active->state = PROCESS_WAIT_QUEUE;
-        process_active->wait_queue.next = queue->waiting_process;
-        queue->waiting_process = process_active;
-
-        // Schedule a new process.
-        process_sched_advance(next_process);
-
-        if (process_active->sched.wait_queue_reset)
+        if (process_queue_wait(queue, 0))
             return -1;
-
-    }
-
-    if (message != NULL) {
-        *message = queue->messages[queue->read_index];
-    }
-
-    if (++queue->read_index == queue->capacity)
-        queue->read_index = 0;
-    
-    if (queue->length-- == queue->capacity) {
-
-        // Queue was full, we get highest priority process and 
-        // instantly write its message to the queue.
-        struct process *next_process = process_queue_pop_next(queue);
-        if (next_process == NULL)
-            return 0;
-
-        queue->messages[queue->write_index] = next_process->wait_queue.message;
-
-        if (++queue->write_index == queue->capacity)
-            queue->write_index = 0;
-
-        queue->length++;
         
-        next_process->state = PROCESS_SCHED_AVAILABLE;
-        next_process->sched.wait_queue_reset = false;
-            
-        process_sched_ring_insert(next_process);
+        // Directly receive the message.
+        if (message != NULL) {
+            *message = process_active->sched.wait_queue_message;
+        }
 
-        if (next_process->priority > process_active->priority) {
-            process_active->state = PROCESS_SCHED_AVAILABLE;
-            process_sched_advance(next_process);
+    } else {
+
+        if (process_queue_raw_read(queue, message) == queue->capacity) {
+
+            // Queue was full, we get highest priority process and 
+            // instantly write its message to the queue.
+            struct process *next_process = process_queue_pop_next(queue);
+            if (next_process == NULL)
+                return 0;
+
+#if QUEUE_DEBUG
+            printf("[%s] process_queue_receive(...): queue was full, receiving %d from %s\n", process_active->name, next_process->wait_queue.message, next_process->name);
+#endif
+
+            process_queue_raw_write(queue, next_process->wait_queue.message);
+
+            next_process->state = PROCESS_SCHED_AVAILABLE;
+            next_process->sched.wait_queue_reset = false;
+            next_process->sched.wait_queue_message = -1;
+
+            process_sched_ring_insert(next_process);
+
+            if (next_process->priority > process_active->priority) {
+                process_active->state = PROCESS_SCHED_AVAILABLE;
+                process_sched_advance(next_process);
+            }
+
         }
 
     }
@@ -288,7 +343,7 @@ int process_queue_count(qid_t qid, int *count) {
         return 0;
 
     int waiting_count = 0;
-    struct process *waiting_process = queue->waiting_process;
+    struct process *waiting_process = queue->wait_process;
     while (waiting_process != NULL) {
         waiting_count++;
         waiting_process = waiting_process->wait_queue.next;
@@ -320,14 +375,29 @@ int process_queue_count(qid_t qid, int *count) {
 int process_queue_reset(qid_t qid) {
 
 #if QUEUE_DEBUG
-    printf("[%s] process_queue_count(%d)\n", process_active->name, qid);
+    printf("[%s] process_queue_reset(%d)\n", process_active->name, qid);
 #endif
 
     struct process_queue *queue = process_queue_from_qid(qid);
     if (queue == NULL)
         return -1;
 
+    queue->length = 0;
+    queue->read_index = 0;
+    queue->write_index = 0;
+
     process_queue_resume_reset(queue);
+
     return 0;
+
+}
+
+void process_queue_set_priority(struct process *process, int new_priority) {
+
+    process->priority = new_priority;
+
+    // Simply remove and add again the process.
+    process_queue_remove_process(process->wait_queue.queue, process);
+    process_queue_add_process(process->wait_queue.queue, process);
 
 }

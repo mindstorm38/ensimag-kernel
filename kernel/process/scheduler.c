@@ -162,51 +162,40 @@ void process_sched_advance(struct process *next_process) {
 
 }
 
-int process_sched_set_priority(struct process *process, int new_priority) {
+void process_sched_set_priority(struct process *process, int new_priority) {
 
-    if (process->state == PROCESS_ZOMBIE) {
-        panic("process_sched_set_priority(...): processs->state is ZOMBIE\n");
-    }
-
-    int prev_priority = process->priority;
-    if (prev_priority == new_priority)
-        return prev_priority;
-
-    // If the process is not scheduled and not zombie, it must be 
-    // waiting so we only need to change its priority without doing
-    // anything.
     if (process->state != PROCESS_SCHED_ACTIVE && process->state != PROCESS_SCHED_AVAILABLE) {
-        process->priority = new_priority;
-        return prev_priority;
+        panic("process_sched_set_priority(...): processs->state is not SCHED_*\n");
     }
 
     // Remove the process from its current ring.
     struct process *next_process = process_sched_ring_remove(process);
-
-    // Insert the process into its new ring.
+    int prev_priority = process->priority;
     process->priority = new_priority;
+    // Insert in its new ring.
     process_sched_ring_insert(process);
 
     if (new_priority < prev_priority) {
 
         // New priority is less than previous one.
-
         if (process_active == process) {
+
             // If we are the current process, we need to find another
             // process to run because we now have a lower priority.
             if (next_process == NULL) {
+
                 // Here we need to find a process on a new ring 
                 // because our ring is now empty.
                 next_process = process_sched_ring_find(prev_priority);
-                if (next_process == process) {
-                    // Our process is also the new highest priority one.
-                    next_process = NULL;
-                }
+                if (next_process == process)
+                    return;
+
             }
+
         } else {
             // Not the current process, our process must have a
             // priority lower to the active process.
-            next_process = NULL; // No need to context switch.
+            return;
         }
 
     } else {
@@ -215,11 +204,14 @@ int process_sched_set_priority(struct process *process, int new_priority) {
         if (process_active == process) {
             // We were already the highest priority process, no need
             // to context switch.
-            next_process = NULL;
+            return;
         } else if (new_priority > process_active->priority) {
             // New priority is higher than current one, switch to our
             // process.
             next_process = process;
+        } else {
+            // New priority doesn't require to schedule the process.
+            return;
         }
 
     }
@@ -228,8 +220,6 @@ int process_sched_set_priority(struct process *process, int new_priority) {
         process_active->state = PROCESS_SCHED_AVAILABLE;
         process_sched_advance(next_process);
     }
-
-    return prev_priority;
 
 }
 

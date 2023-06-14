@@ -10,3 +10,6 @@ clean:
 
 qemu: all
 	qemu-system-i386 -machine q35 -m 256 -kernel kernel/out/kernel.bin
+
+qemu-term: all
+	qemu-system-i386 -machine q35 -m 256 -kernel kernel/out/kernel.bin -display curses
