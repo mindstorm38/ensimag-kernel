@@ -124,7 +124,13 @@ struct process *process_sched_ring_find(int max_priority) {
 
 void process_sched_advance(struct process *next_process) {
 
-    // printf("[%s] process_sched_advance(...)\n", process_active->name);
+#if PROCESS_DEBUG
+    if (next_process != NULL) {
+        printf("[%s] process_sched_advance(%s)\n", process_active->name, next_process->name);
+    } else {
+        printf("[%s] process_sched_advance(NULL)\n", process_active->name);
+    }
+#endif
 
     struct process *prev_process = process_active;
 
@@ -154,7 +160,21 @@ void process_sched_advance(struct process *next_process) {
     if (prev_process == next_process) {
         // Do nothing
     } else {
-        
+
+        // Just a check to panic if the process overflow its stack.
+        if (prev_process->context.esp < (uint32_t) prev_process->stack) {
+            panic("process_sched_advance(...): process '%s' overflow its stack (%d octets below)\n", 
+                prev_process->name, (uint32_t) prev_process->stack - prev_process->context.esp);
+        }
+
+        // if (prev_process->pid == 0) {
+        //     process_debug(prev_process);
+        // }
+
+        // if (next_process->pid == 0) {
+        //     process_debug(next_process);
+        // }
+
         process_active = next_process;
         process_context_switch(&prev_process->context, &next_process->context);
         

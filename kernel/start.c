@@ -37,7 +37,7 @@ int idle(void *arg) {
 
 	(void) arg;
 
-	process_start(test_run_wrapper, 512, 127, "test_run_wrapper", NULL);
+	process_start(test_run_wrapper, 1024, 127, "test_run_wrapper", NULL);
 
 	for (;;) {
 
@@ -53,11 +53,12 @@ int idle(void *arg) {
 
 static int test_run_wrapper(void *arg) {
 	(void) arg;
-	for (int i = 17; i <= 20; i++) {
+	for (int i = 1; i <= 17; i++) {
 		printf("== RUNNING TEST %d ==\n", i);
 		int ret = test_run(i);
 		if (ret != 0)
 			return ret;
 	}
+	printf("== TESTS COMPLETE ==\n");
 	return 0;
 }

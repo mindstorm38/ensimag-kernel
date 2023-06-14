@@ -46,6 +46,7 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
 
     // Initialize stack...
     process->stack = stack;
+    process->stack_size = stack_size;
 
     void *stack_top = stack + stack_size;
     size_t *stack_ptr = stack_top - prelude_size;
@@ -435,5 +436,25 @@ void process_wait_clock(uint32_t clock) {
         process_sched_advance(next_process);
 
     }
+
+}
+
+void process_debug(struct process *process) {
+
+    printf("== [ PROCESS %d ] ==\n", process->pid);
+    printf("NAME:    %s\n", process->name);
+    printf("STATE:   %d\n", process->state);
+    printf("CONTEXT:\n");
+    printf(" EBX: 0x%08X\n", process->context.ebx);
+    printf(" ESP: 0x%08X\n", process->context.esp);
+    printf(" EBP: 0x%08X\n", process->context.ebp);
+    printf(" ESI: 0x%08X\n", process->context.esi);
+    printf(" EDI: 0x%08X\n", process->context.edi);
+
+    // printf("STACK: %p -> %p\n", process->stack, process->stack + process->stack_size);
+    // for (uint32_t *sp = (uint32_t *) (process->stack + process->stack_size - 1); (uint32_t) sp >= process->context.esp; sp--) {
+    //     printf("%08X ", *sp);
+    // }
+    // printf("\n");
 
 }

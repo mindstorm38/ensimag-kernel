@@ -6,6 +6,8 @@
 #include "stdint.h"
 
 
+// Note that enabling debug may fail some kill(...) or exit(...) test
+// because of insufficient stack size, but that's okay.
 #define PROCESS_DEBUG 0
 #define QUEUE_DEBUG 0
 
@@ -122,6 +124,8 @@ struct process {
     };
     /// The process' stack.
     char *stack;
+    /// The stack size.
+    size_t stack_size;
     /// Process id, its index in the internal process queue.
     pid_t pid;
     /// Name of the process.
@@ -165,14 +169,12 @@ void process_overall_remove(struct process *process);
 /// Get a process from its PID.
 struct process *process_from_pid(pid_t pid);
 
-
 /// Function defined in assembly (process_context.S).
 void process_context_switch(struct process_context *prev_ctx, struct process_context *next_ctx);
 
 void process_internal_exit(int code) __attribute__((noreturn));
 /// Method defined in assembly to be sure that EAX don't get clobbered.
 void process_implicit_exit(void) __attribute__((noreturn));
-
 
 /// Internal function used to insert a process in its scheduler ring.
 ///
@@ -211,7 +213,6 @@ void process_sched_set_priority(struct process *process, int new_priority);
 /// Internal function that handle pit interrupts for scheduler.
 void process_sched_pit_handler(uint32_t clock);
 
-
 /// Add the process to the clock queue, the process must be in the
 /// `PROCESS_WAIT_TIME` state with corresponding data.
 void process_time_queue_add(struct process *process);
@@ -222,12 +223,14 @@ void process_time_queue_remove(struct process *process);
 /// automatically reschedule processes that reach their target clock.
 void process_time_pit_handler(uint32_t clock);
 
-
 /// Change the priority of a process that is currently waiting for a
 /// queue. The process must be in `PROCESS_WAIT_QUEUE` state.
 void process_queue_set_priority(struct process *process, int new_priority);
 /// Kill a process that is waiting for queue. The process must be in
 /// `PROCESS_WAIT_QUEUE` state.
 void process_queue_kill_process(struct process *process);
+
+/// Internal function to debug print a process.
+void process_debug(struct process *process);
 
 #endif
