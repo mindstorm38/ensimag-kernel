@@ -330,14 +330,14 @@ int process_set_priority(pid_t pid, int priority) {
 
 }
 
-pid_t process_wait_pid(pid_t pid, int *exit_code) {
+pid_t process_wait(pid_t pid, int *exit_code) {
 
     struct process *child = process_active->child;
     if (child == NULL)
         return -1;
     
 #if PROCESS_DEBUG
-    printf("[%s] process_wait_pid(%d)\n", process_active->name, pid);
+    printf("[%s] process_wait(%d)\n", process_active->name, pid);
 #endif
     
     while (child != NULL) {
@@ -361,7 +361,7 @@ pid_t process_wait_pid(pid_t pid, int *exit_code) {
     if (child == NULL || child->state != PROCESS_ZOMBIE) {
 
 #if PROCESS_DEBUG
-        printf("[%s] process_wait_pid(...): waiting\n", process_active->name);
+        printf("[%s] process_wait(...): waiting\n", process_active->name);
 #endif
 
         struct process *next_process = process_sched_ring_remove(process_active);
@@ -376,7 +376,7 @@ pid_t process_wait_pid(pid_t pid, int *exit_code) {
         child = process_active->sched.new_zombie_child;
 
 #if PROCESS_DEBUG
-        printf("[%s] process_wait_pid(...): resume from %s\n", process_active->name, child->name);
+        printf("[%s] process_wait(...): resume from %s\n", process_active->name, child->name);
 #endif
 
     }

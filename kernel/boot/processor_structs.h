@@ -43,8 +43,13 @@ struct x86_tss {
                                            bit map */
 };
 
+// GDT at 0x10000.
 extern unsigned long long gdt[GDT_ENTRIES];
+
+// IDT at 0x1000.
 extern unsigned long long idt[IDT_ENTRIES];
+
+// TSS at 0x20000.
 extern struct x86_tss tss;
 
 void reboot(void);

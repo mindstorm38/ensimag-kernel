@@ -37,7 +37,7 @@ int process_priority(pid_t pid);
 int process_set_priority(pid_t pid, int priority);
 
 /// Wait for termination of one of the child processes.
-pid_t process_wait_pid(pid_t pid, int *exit_code);
+pid_t process_wait(pid_t pid, int *exit_code);
 /// Kill the given process by pid.
 int process_kill(pid_t pid);
 

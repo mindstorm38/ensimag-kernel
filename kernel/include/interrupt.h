@@ -7,12 +7,13 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-
 /// Type alias for interrupt handler function.
 typedef void (*irq_handler_t)();
 
-/// Configure an descriptor in the Interrupt Descriptor Table.
-void idt_configure(uint8_t index, uint32_t handler_addr);
+void idt_interrupt_gate(uint8_t index, uint32_t handler_offset, uint8_t dpl);
+void idt_trap_gate(uint8_t index, uint32_t handler_offset, uint8_t dpl);
+void idt_task_gate(uint8_t index, uint16_t tss_segment, uint8_t dpl);
+void idt_remove_gate(uint8_t index);
 
 /// Set handle for a given interrupt (up to 16 handlers).
 void irq_set_handler(uint8_t n, irq_handler_t handler);

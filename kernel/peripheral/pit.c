@@ -1,8 +1,10 @@
-#include "stddef.h"
-
 #include "interrupt.h"
 #include "pit.h"
 #include "cpu.h"
+
+#include "stddef.h"
+#include "stdio.h"
+#include <stdio.h>
 
 
 #define PIT_CHAN0_DATA  0x0040
@@ -41,6 +43,8 @@ static void pit_interrupt_handler(void) {
 }
 
 void pit_init(void) {
+
+    printf("Initializing PIT...\n");
 
     pit_set_frequency();
     irq_set_handler(0, pit_interrupt_handler);

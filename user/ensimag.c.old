@@ -1,9 +1,9 @@
+// Kernel API (syscall).
+
+#include "syscall_shared.h"
 #include "stdint.h"
 
 #include "ensimag.h"
-#include "process.h"
-#include "pit.h"
-#include "cga.h"
 
 
 void clock_settings(unsigned long *quartz, unsigned long *ticks) {
@@ -43,7 +43,7 @@ int chprio(int pid, int newprio) {
 }
 
 int waitpid(int pid, int *retval) {
-    return process_wait_pid(pid, retval);
+    return process_wait(pid, retval);
 }
 
 int kill(int pid) {
