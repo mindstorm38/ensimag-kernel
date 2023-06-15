@@ -1,35 +1,35 @@
-STRUCTURES DE DONNÉES DU PROCESSEUR ET CARTE MÉMOIRE
+STRUCTURES DE DONNÃ‰ES DU PROCESSEUR ET CARTE MÃ‰MOIRE
 
 
-Les structures et adresses sont décrites dans l'ordre de leur initialisation et/ou utilisation dans le code fourni.
+Les structures et adresses sont dÃ©crites dans l'ordre de leur initialisation et/ou utilisation dans le code fourni.
 
-1M : Adresse où est chargé le noyau.
+1M : Adresse oÃ¹ est chargÃ© le noyau.
 
-first_stack (dans .data, sur 16K) : la pile sur laquelle démarre le noyau.
+first_stack (dans .data, sur 16K) : la pile sur laquelle dÃ©marre le noyau.
 
-16M : Début de l'espace utilisateur. Le code utilisateur est chargé à cette adresse par le noyau dès le démarrage de ce dernier.
+16M : DÃ©but de l'espace utilisateur. Le code utilisateur est chargÃ© Ã  cette adresse par le noyau dÃ¨s le dÃ©marrage de ce dernier.
 
 gdt (adresse : 64K, sur 64K) : la table globale des descripteurs (GDT), voir doc Intel.
-Entrée 0 : vide (à 0, invalide).
-Entrée 1 : descripteur de la TSS utilisée en permanence par le kernel et le code utilisateur.
-Entrée 2 : descripteur du segment de code superviseur (couvre toute l'espace adressable), référencé par CS.
-Entrée 3 : descripteur du segment de données superviseur (couvre toute l'espace adressable), référencé par DS, ES, SS.
-Entrées 4 à 7 : vide (à 0, invalide).
-Entrée 8 : descripteur du segment de code utilisateur (couvre toute l'espace adressable).
-Entrée 9 : descripteur du segment de données utilisateur (couvre toute l'espace adressable).
-Entrées 10 à 41 : descripteurs des TSS associées à chacun des 32 vecteurs d'exception du processeur.
-Entrées suivantes : vides (à 0, invalides).
+EntrÃ©e 0 : vide (Ã  0, invalide).
+EntrÃ©e 1 : descripteur de la TSS utilisÃ©e en permanence par le kernel et le code utilisateur.
+EntrÃ©e 2 : descripteur du segment de code superviseur (couvre toute l'espace adressable), rÃ©fÃ©rencÃ© par CS.
+EntrÃ©e 3 : descripteur du segment de donnÃ©es superviseur (couvre toute l'espace adressable), rÃ©fÃ©rencÃ© par DS, ES, SS.
+EntrÃ©es 4 Ã  7 : vide (Ã  0, invalide).
+EntrÃ©e 8 : descripteur du segment de code utilisateur (couvre toute l'espace adressable).
+EntrÃ©e 9 : descripteur du segment de donnÃ©es utilisateur (couvre toute l'espace adressable).
+EntrÃ©es 10 Ã  41 : descripteurs des TSS associÃ©es Ã  chacun des 32 vecteurs d'exception du processeur.
+EntrÃ©es suivantes : vides (Ã  0, invalides).
 
 Pas de LDT (table locale des descripteurs).
 
-trap_tss (dans .data, sur < 4K) : les 32 TSS associées aux 32 exceptions du processeur. Elles sont initialisées avec des tâches qui appellent le traitant d'exception, qui est le même pour toutes. Le code de ces tâches est dans "handlers.S".
+trap_tss (dans .data, sur < 4K) : les 32 TSS associÃ©es aux 32 exceptions du processeur. Elles sont initialisÃ©es avec des tÃ¢ches qui appellent le traitant d'exception, qui est le mÃªme pour toutes. Le code de ces tÃ¢ches est dans "handlers.S".
 
-idt (adresse : 4K, sur 2K) : table d'interruptions. Les entrées 0 à 31 (vecteurs d'exception) sont des "task gate" vers les TSS précédemment initialisées. Les autres entrées sont vides (à 0, invalides).
+idt (adresse : 4K, sur 2K) : table d'interruptions. Les entrÃ©es 0 Ã  31 (vecteurs d'exception) sont des "task gate" vers les TSS prÃ©cÃ©demment initialisÃ©es. Les autres entrÃ©es sont vides (Ã  0, invalides).
 
-tss (adresse : 128K, sur 104 octets) : la TSS courante, pour stocker le contexte actuel lors du basculement vers une tâche de traitement d'exception. Elle contient aussi l'adresse de la pile superviseur du processus actuel.
+tss (adresse : 128K, sur 104 octets) : la TSS courante, pour stocker le contexte actuel lors du basculement vers une tÃ¢che de traitement d'exception. Elle contient aussi l'adresse de la pile superviseur du processus actuel.
 
-pgdir (dans .text) : le répertoire de pages. Cette structure permet de mettre en place une protection sur certaines zones de l'espace d'adressage. Ainsi, un accès entre les adresses 0 et 4K (au début de la mémoire) lèvera immédiatement une faute de page (exception 14). Ca permet de capturer les accès à la mémoire à travers un pointeur nul. De même, un accès à la zone réservée au noyau par le programme utilisateur provoquera également une faute de page. C'est une mesure de protection du noyau contre l'application. Dans notre cas, nous n'avons autorisé les programmes en mode utilisateur qu'à accéder aux adresses comprises entre 16M et 48M.
+pgdir (dans .text) : le rÃ©pertoire de pages. Cette structure permet de mettre en place une protection sur certaines zones de l'espace d'adressage. Ainsi, un accÃ¨s entre les adresses 0 et 4K (au dÃ©but de la mÃ©moire) lÃ¨vera immÃ©diatement une faute de page (exception 14). Ca permet de capturer les accÃ¨s Ã  la mÃ©moire Ã  travers un pointeur nul. De mÃªme, un accÃ¨s Ã  la zone rÃ©servÃ©e au noyau par le programme utilisateur provoquera Ã©galement une faute de page. C'est une mesure de protection du noyau contre l'application. Dans notre cas, nous n'avons autorisÃ© les programmes en mode utilisateur qu'Ã  accÃ©der aux adresses comprises entre 16M et 48M.
 
-40M : Début de la zone où sont allouées par le noyau les piles utilisateurs des processus.
+40M : DÃ©but de la zone oÃ¹ sont allouÃ©es par le noyau les piles utilisateurs des processus.
 
 48M : Fin de l'espace utilisateur, et fin de la zone d'allocation des piles utilisateurs.

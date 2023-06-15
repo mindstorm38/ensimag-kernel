@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Description des fichiers et répertoires proposés pour le projet
+ * Description des fichiers et rÃ©pertoires proposÃ©s pour le projet
  ******************************************************************************/
 
 ./A_LIRE
@@ -9,149 +9,149 @@ Ce fichier.
 Permet de compiler ou nettoyer tout le projet.
 
 ./CARTE_MEMOIRE
-Une documentation des principales structures et zones en mémoire.
+Une documentation des principales structures et zones en mÃ©moire.
 
 ./kernel
-Contient le code du noyau (mode maître).
+Contient le code du noyau (mode maÃ®tre).
 
 ./user
 Contient le code de l'application (mode esclave).
 
 /*******************************************************************************
- * Code partagé
+ * Code partagÃ©
  ******************************************************************************/
 ./shared
-Contient le code dupliqué entre l'application et le noyau. Les fichiers ".h"
-sont accessibles dans les deux programmes, et les fichiers ".c" peuvent être
-compilés dans les deux programmes.
+Contient le code dupliquÃ© entre l'application et le noyau. Les fichiers ".h"
+sont accessibles dans les deux programmes, et les fichiers ".c" peuvent Ãªtre
+compilÃ©s dans les deux programmes.
 
 ./shared/debug.h
 Contient les prototypes de fonctions d'affichage, et la macro assert(), dont
-nous vous conseillons vivement l'utilisation (comportement similaire à celui
-décrit dans "man assert").
+nous vous conseillons vivement l'utilisation (comportement similaire Ã  celui
+dÃ©crit dans "man assert").
 
 ./shared/printf.c
-Implantation de "printf", pour afficher du texte formatté à l'écran.
+Implantation de "printf", pour afficher du texte formattÃ© Ã  l'Ã©cran.
 
 ./shared/console.h
-Déclaration de la fonction appelée par "printf" pour afficher son texte à
-l'écran. Vous devez implanter cette fonction dans ./kernel et ./user pour
-effectivement afficher les caractères. Dans ./kernel, cette fonction doit
-écrire les caractères dans la mémoire de l'écran et déplacer le curseur
-clignotant. Dans ./user, cette fonction doit faire l'appel système
+DÃ©claration de la fonction appelÃ©e par "printf" pour afficher son texte Ã 
+l'Ã©cran. Vous devez implanter cette fonction dans ./kernel et ./user pour
+effectivement afficher les caractÃ¨res. Dans ./kernel, cette fonction doit
+Ã©crire les caractÃ¨res dans la mÃ©moire de l'Ã©cran et dÃ©placer le curseur
+clignotant. Dans ./user, cette fonction doit faire l'appel systÃ¨me
 cons_write().
 
 ./shared/sprintf.c
-Printf dans des chaînes de caractères (pas à l'écran).
+Printf dans des chaÃ®nes de caractÃ¨res (pas Ã  l'Ã©cran).
 
 ./shared/doprnt.c
 ./shared/doprnt.h
-Programme utilisé par les fonctions de la famille (s)printf.
+Programme utilisÃ© par les fonctions de la famille (s)printf.
 
 ./shared/types.h
-Des types très fréquemment utilisés : size_t et ptrdiff_t.
+Des types trÃ¨s frÃ©quemment utilisÃ©s : size_t et ptrdiff_t.
 
 ./shared/stdarg.h
 Utile pour les fonctions a arguments variables, comme printf.
 Voir "man stdarg".
 
 ./shared/panic.c
-Fonction appelée par la macro assert, utilisable quand vous voulez arrêter le
-noyau ou l'application à cause d'une erreur irrécupérable (détection d'un bug).
-Cette fonction met fin à l'exécution en tentant d'écrire à l'adresse 0, ce qui
-provoque une faute de page à cause de la protection mise en place par le
-code de démarrage du noyau.
+Fonction appelÃ©e par la macro assert, utilisable quand vous voulez arrÃªter le
+noyau ou l'application Ã  cause d'une erreur irrÃ©cupÃ©rable (dÃ©tection d'un bug).
+Cette fonction met fin Ã  l'exÃ©cution en tentant d'Ã©crire Ã  l'adresse 0, ce qui
+provoque une faute de page Ã  cause de la protection mise en place par le
+code de dÃ©marrage du noyau.
 
 ./shared/string.h
-Les principales fonctions de manipulation de chaînes de caractères et de copie
-de zone de mémoire : memcpy, strcpy, strlen...
+Les principales fonctions de manipulation de chaÃ®nes de caractÃ¨res et de copie
+de zone de mÃ©moire : memcpy, strcpy, strlen...
 
 ./shared/queue.h
-Contient des fonctions de manipulation de files à priorité, à utiliser pour
-implanter les règles de scheduling du noyau.
+Contient des fonctions de manipulation de files Ã  prioritÃ©, Ã  utiliser pour
+implanter les rÃ¨gles de scheduling du noyau.
 
 ./shared/malloc.c.h
-Code de l'allocateur de mémoire utilisé en trois endroits dans ce projet. C'est
+Code de l'allocateur de mÃ©moire utilisÃ© en trois endroits dans ce projet. C'est
 pour cette raison qu'il est fourni dans un fichier ".h". Il n'est heureusement
-pas nécessaire que vous compreniez son fonctionnement.
+pas nÃ©cessaire que vous compreniez son fonctionnement.
 
 ./shared/stddef.h
 ./shared/stdio.h
-Redirection d'entêtes standards sur d'autres fichiers que nous fournissons.
+Redirection d'entÃªtes standards sur d'autres fichiers que nous fournissons.
 
 /*******************************************************************************
  * Code du noyau
  ******************************************************************************/
 ./kernel/Makefile
-Permet de compiler le noyau (fichier kernel.bin). Il génère des fichiers ".o",
+Permet de compiler le noyau (fichier kernel.bin). Il gÃ©nÃ¨re des fichiers ".o",
 comme d'habitude, mais aussi des fichiers ".d", qui correspondent aux
-dépendances détectées par le compilateur entre les fichiers sources. Donc si
-vous modifiez un fichier source, tout ce qui en dépend (même via une longue
-chaîne d'"include") sera automatiquement recompilé par la commande "make".
-make détecte et compile automatiquement les fichiers ".S" et ".c" que vous
-ajoutez au projet (dans le répertoire kernel).
-Le nettoyage (make clean), n'efface que les fichiers qu'il aurait compilés. Donc
+dÃ©pendances dÃ©tectÃ©es par le compilateur entre les fichiers sources. Donc si
+vous modifiez un fichier source, tout ce qui en dÃ©pend (mÃªme via une longue
+chaÃ®ne d'"include") sera automatiquement recompilÃ© par la commande "make".
+make dÃ©tecte et compile automatiquement les fichiers ".S" et ".c" que vous
+ajoutez au projet (dans le rÃ©pertoire kernel).
+Le nettoyage (make clean), n'efface que les fichiers qu'il aurait compilÃ©s. Donc
 si vous supprimez un fichier source, sans effacer son ".o" et son ".d", il ne
-seront pas supprimés par "make clean".
+seront pas supprimÃ©s par "make clean".
 
 ./kernel/cpu.h
-Contient du code assembleur "en ligne" pour toutes les opérations du processeur
+Contient du code assembleur "en ligne" pour toutes les opÃ©rations du processeur
 que vous pourriez vouloir appeler dans du code C. Nous vous conseillons de ne
-pas écrire d'assembleur "en ligne" vous-même, à moins de bien étudier la
-documentation de gcc. Ecrivez plutôt l'assembleur dans des fichiers ".S".
+pas Ã©crire d'assembleur "en ligne" vous-mÃªme, Ã  moins de bien Ã©tudier la
+documentation de gcc. Ecrivez plutÃ´t l'assembleur dans des fichiers ".S".
 
 ./kernel/mem.c
 ./kernel/mem.h
-Allocateur de mémoire pour le noyau. Gère un tas localisé entre la fin du
-noyau et le début de la mémoire utilisateur.
+Allocateur de mÃ©moire pour le noyau. GÃ¨re un tas localisÃ© entre la fin du
+noyau et le dÃ©but de la mÃ©moire utilisateur.
 
 ./kernel/empty.c
-Fichier vide ! Utilisé par le Makefile pour "embarquer" le code utilisateur
-à l'intérieur du noyau dans une section spéciale sans le lier.
+Fichier vide ! UtilisÃ© par le Makefile pour "embarquer" le code utilisateur
+Ã  l'intÃ©rieur du noyau dans une section spÃ©ciale sans le lier.
 
 ./kernel/kernel.lds
-Script de liaison du noyau. Il définit à quelle adresse le noyau doit être
-chargé (1M) et comment les sections doivent être ordonnées.
-Il définit aussi des symboles représentant le découpage de la mémoire (voir
+Script de liaison du noyau. Il dÃ©finit Ã  quelle adresse le noyau doit Ãªtre
+chargÃ© (1M) et comment les sections doivent Ãªtre ordonnÃ©es.
+Il dÃ©finit aussi des symboles reprÃ©sentant le dÃ©coupage de la mÃ©moire (voir
 CARTE_MEMOIRE).
 
 ./kernel/crt0.S
-Code de démarrage du noyau. C'est le premier fichier ".o" lié du noyau, sa
-première instruction est donc celle qui se trouve à l'adresse 1M et à laquelle
+Code de dÃ©marrage du noyau. C'est le premier fichier ".o" liÃ© du noyau, sa
+premiÃ¨re instruction est donc celle qui se trouve Ã  l'adresse 1M et Ã  laquelle
 le chargeur donne la main. Ce code met en place une pile, copie le code
-utilisateur à son adresse de chargement (16M), initialise les tables du
+utilisateur Ã  son adresse de chargement (16M), initialise les tables du
 processeur (voir le fichier CARTE_MEMOIRE), puis appelle la fonction
 kernel_start() du noyau.
 Ce fichier contient aussi des implantations vides des fonctions
 console_putbytes(), keyboard_data() et kbd_leds() pour permettre au code du
-noyau de se lier sans que vous les ayez écrites. Elles seront automatiquement
-ignorées dès que vous écrirez votre propre implantation.
+noyau de se lier sans que vous les ayez Ã©crites. Elles seront automatiquement
+ignorÃ©es dÃ¨s que vous Ã©crirez votre propre implantation.
 
 ./kernel/start.h
 ./kernel/start.c
-Définit entre autres la fonction où commence l'exécution de votre noyau.
+DÃ©finit entre autres la fonction oÃ¹ commence l'exÃ©cution de votre noyau.
 
 ./kernel/segment.h
 Segments mis en place par le code d'initialisation du processeur.
 
 ./kernel/user_stack_mem.c
 ./kernel/user_stack_mem.h
-Allocateur de mémoire dans l'espace utilisateur pour allouer des piles au
-niveau utilisateur pour les processus. Gère un tas de 8M.
+Allocateur de mÃ©moire dans l'espace utilisateur pour allouer des piles au
+niveau utilisateur pour les processus. GÃ¨re un tas de 8M.
 
 ./kernel/kbd_linux
 ./kernel/keyboard-glue.c
 ./kernel/keyboard-glue.h
-Code de conversion des scancodes en caractères. Vous n'avez pas besoin d'y
+Code de conversion des scancodes en caractÃ¨res. Vous n'avez pas besoin d'y
 toucher sauf si vous voulez implanter des consoles virtuelles (option).
 
 ./kernel/kbd.h
-Déclarations des fonctions à utiliser ou à écrire pour mettre en oeuvre le
+DÃ©clarations des fonctions Ã  utiliser ou Ã  Ã©crire pour mettre en oeuvre le
 clavier.
 
 ./kernel/boot/processor_structs.c
 ./kernel/boot/processor_structs.h
-Code d'initialisation des structures du processeur appelé par le crt0.
+Code d'initialisation des structures du processeur appelÃ© par le crt0.
 
 ./kernel/debugger.c
 ./kernel/debugger.h
@@ -162,34 +162,34 @@ Code d'initialisation des structures du processeur appelé par le crt0.
 ./kernel/serial.c
 ./kernel/serial.h
 ./kernel/task_dump_screen.txt
-Support du débogage par affichage des registres à l'écran et à travers la
-ligne série. Le débogueur est appelé dès qu'une exception est levée. Pour
-tracer l'exécution du noyau, il suffit d'appeler l'une des fonctions définies
+Support du dÃ©bogage par affichage des registres Ã  l'Ã©cran et Ã  travers la
+ligne sÃ©rie. Le dÃ©bogueur est appelÃ© dÃ¨s qu'une exception est levÃ©e. Pour
+tracer l'exÃ©cution du noyau, il suffit d'appeler l'une des fonctions dÃ©finies
 dans debugger.h.
 
 /*******************************************************************************
  * Code utilisateur
  ******************************************************************************/
 ./user/Makefile
-Fonctionne de la même façon que le Makefile du noyau. Il génère un fichier
-"user.bin", qui est inclus dans le noyau pour son chargement à l'adresse 16M.
+Fonctionne de la mÃªme faÃ§on que le Makefile du noyau. Il gÃ©nÃ¨re un fichier
+"user.bin", qui est inclus dans le noyau pour son chargement Ã  l'adresse 16M.
 
 ./user/user.lds
-Similaire à kernel.lds.
+Similaire Ã  kernel.lds.
 
 ./user/crt0.S
-Comme pour le noyau, il faut qu'une fonction commence à une adresse bien connue
+Comme pour le noyau, il faut qu'une fonction commence Ã  une adresse bien connue
 pour le chargement du premier processus utilisateur. C'est l'adresse de ce crt0
 (16M) qu'il faut utiliser comme premier processus. Il appelle directement la
 fonction user_start() que vous pouvez implanter pour lancer d'autres processus,
 comme un shell par exemple.
 
 ./user/start.h
-Définit la fonction user_start() où commence l'exécution de votre code utilisateur.
+DÃ©finit la fonction user_start() oÃ¹ commence l'exÃ©cution de votre code utilisateur.
 
 ./user/mem.c
 ./user/mem.h
-Allocateur de mémoire pour les processus utilisateurs. Gère un tas localisé après
+Allocateur de mÃ©moire pour les processus utilisateurs. GÃ¨re un tas localisÃ© aprÃ¨s
 l'espace des programmes utilisateurs. Attention, comme les allocateurs kernel, il
-ne supporte pas des appels simultanés par des threads concurrents. Il est
-nécessaire de synchroniser les accès concurrents.
+ne supporte pas des appels simultanÃ©s par des threads concurrents. Il est
+nÃ©cessaire de synchroniser les accÃ¨s concurrents.
