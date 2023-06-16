@@ -8,8 +8,6 @@
 #include "stdint.h"
 
 #include "ensimag.h"
-#include "syscall_shared.h"
-#include <stddef.h>
 
 
 int start(int (*pt_func)(void *), unsigned long ssize, int prio, const char *name, void *arg) {

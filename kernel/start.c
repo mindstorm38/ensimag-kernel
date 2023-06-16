@@ -12,7 +12,7 @@
 #include "stdio.h"
 
 
-static int idle(void *arg);
+// static int idle(void *arg);
 // static int test_run_wrapper(void *arg);
 // int test_run(int n);
 
@@ -24,11 +24,10 @@ void kernel_start(void) {
 	pit_init();
 	syscall_init();
 
-	__asm__ __volatile__("int $49":::"memory");
-
+	printf("Starting user program...\n");
 	user_start(NULL);
 
-	process_idle(idle, 512, NULL);
+	// process_idle(idle, 512, NULL);
 
 	while (1)
 	  hlt();
@@ -38,23 +37,23 @@ void kernel_start(void) {
 }
 
 
-int idle(void *arg) {
+// int idle(void *arg) {
 
-	(void) arg;
+// 	(void) arg;
 
-	// process_start(test_run_wrapper, 1024, 127, "test_run_wrapper", NULL);
+// 	// process_start(test_run_wrapper, 1024, 127, "test_run_wrapper", NULL);
 
-	for (;;) {
+// 	for (;;) {
 
-		sti();
-		hlt();
-		cli();
+// 		sti();
+// 		hlt();
+// 		cli();
 
-	}
+// 	}
 
-	return 0;
+// 	return 0;
 
-}
+// }
 
 // static int test_run_wrapper(void *arg) {
 // 	(void) arg;
