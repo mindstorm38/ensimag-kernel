@@ -1,5 +1,6 @@
 #include "debug/debugger.h"
 
+#include "segment.h"
 #include "syscall.h"
 #include "process.h"
 #include "memory.h"
@@ -12,10 +13,7 @@
 #include "stdio.h"
 
 
-// static int idle(void *arg);
-// static int test_run_wrapper(void *arg);
-// int test_run(int n);
-
+static int idle(void *arg);
 
 void kernel_start(void) {
 
@@ -25,9 +23,11 @@ void kernel_start(void) {
 	syscall_init();
 
 	printf("Starting user program...\n");
-	user_start(NULL);
 
-	// process_idle(idle, 512, NULL);
+	// syscall_jump_lower_pl(USER_CS, )
+	// user_start(NULL);
+
+	process_idle(idle, 512, NULL);
 
 	while (1)
 	  hlt();
@@ -37,23 +37,26 @@ void kernel_start(void) {
 }
 
 
-// int idle(void *arg) {
+/// Intended to run at user privilege (3).
+int idle(void *arg) {
 
-// 	(void) arg;
+	(void) arg;
 
-// 	// process_start(test_run_wrapper, 1024, 127, "test_run_wrapper", NULL);
+	while (1);
 
-// 	for (;;) {
+	// process_start(user_start, 1024, 127, "user", NULL);
 
-// 		sti();
-// 		hlt();
-// 		cli();
+	// for (;;) {
 
-// 	}
+	// 	sti();
+	// 	hlt();
+	// 	cli();
 
-// 	return 0;
+	// }
 
-// }
+	return 0;
+
+}
 
 // static int test_run_wrapper(void *arg) {
 // 	(void) arg;

@@ -1,4 +1,4 @@
-#include "process_internals.h"
+#include "internals.h"
 
 #include "stdio.h"
 #include "cpu.h"
@@ -161,11 +161,11 @@ void process_sched_advance(struct process *next_process) {
         // Do nothing
     } else {
 
-        // Just a check to panic if the process overflow its stack.
-        if (prev_process->context.esp < (uint32_t) prev_process->stack) {
-            panic("process_sched_advance(...): process '%s' overflow its stack (%d octets below)\n", 
-                prev_process->name, (uint32_t) prev_process->stack - prev_process->context.esp);
-        }
+        // // Just a check to panic if the process overflow its stack.
+        // if (prev_process->context.esp < (uint32_t) prev_process->stack) {
+        //     panic("process_sched_advance(...): process '%s' overflow its stack (%d octets below)\n", 
+        //         prev_process->name, (uint32_t) prev_process->stack - prev_process->context.esp);
+        // }
 
         // if (prev_process->pid == 0) {
         //     process_debug(prev_process);
@@ -176,7 +176,7 @@ void process_sched_advance(struct process *next_process) {
         // }
 
         process_active = next_process;
-        process_context_switch(&prev_process->context, &next_process->context);
+        process_context_switch(prev_process, next_process);
         
     }
 

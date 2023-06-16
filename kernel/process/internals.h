@@ -1,15 +1,19 @@
 #ifndef __PROCESS_INTERNALS_H__
 #define __PROCESS_INTERNALS_H__
 
-#include "process.h"
 #include "stdbool.h"
 #include "stdint.h"
+
+#include "process.h"
+#include "arch.h"
 
 
 // Note that enabling debug may fail some kill(...) or exit(...) test
 // because of insufficient stack size, but that's okay.
 #define PROCESS_DEBUG 0
 #define QUEUE_DEBUG 0
+
+#define KERNEL_STACK_SIZE 512
 
 
 struct process;
@@ -84,14 +88,14 @@ struct process_state_zombie {
     int exit_code;
 };
 
-/// Registers context of a process.
-struct process_context {
-    uint32_t ebx;
-    uint32_t esp;
-    uint32_t ebp;
-    uint32_t esi;
-    uint32_t edi;
-};
+// /// Registers context of a process.
+// struct process_context {
+//     uint32_t ebx;
+//     uint32_t esp;
+//     uint32_t ebp;
+//     uint32_t esi;
+//     uint32_t edi;
+// };
 
 /// The process structure.
 struct process {
@@ -105,8 +109,6 @@ struct process {
     struct process *child;
     /// Next child of the parent process's child linked list.
     struct process *sibling;
-    /// Context saving registers that will be restored on context switch.
-    struct process_context context;
     /// State of the process.
     enum process_state state;
     /// State "tagged union" depending on the state.
@@ -122,6 +124,18 @@ struct process {
         /// Valid for `PROCESS_ZOMBIE`.
         struct process_state_zombie zombie;
     };
+    /// Kernel stack, it is really important and we use it to execute
+    /// our interrupt handler so we can resume the execution of the
+    /// kernel code when the process is resumed. 
+    /// 
+    /// It also contains the saved registers of the user code, that 
+    /// are saved by interrupt handlers for syscalls or other 
+    /// interrupts.
+    char *kernel_stack;
+    /// The kernel's current ESP register value, we only keep this 
+    /// value because the kernel code's context is saved in the 
+    /// kernel's stack.
+    uint32_t kernel_esp;
     /// The process' stack.
     char *stack;
     /// The stack size.
@@ -158,6 +172,8 @@ struct process_queue {
 };
 
 
+/// The pointer to the currently active process being executed at user
+/// level.
 extern struct process *process_active;
 
 
@@ -169,8 +185,13 @@ void process_overall_remove(struct process *process);
 /// Get a process from its PID.
 struct process *process_from_pid(pid_t pid);
 
-/// Function defined in assembly (process_context.S).
-void process_context_switch(struct process_context *prev_ctx, struct process_context *next_ctx);
+/// Context switch between a previous process and a next one.
+/// This function must be called from kernel privilege level and will
+/// resume the next process in the user privilege level.
+void process_context_switch(struct process *prev, struct process *next);
+/// Startup function that is called once when first starting a 
+/// user privilege level process.
+void process_context_startup();
 
 void process_internal_exit(int code) __attribute__((noreturn));
 /// Method defined in assembly to be sure that EAX don't get clobbered.

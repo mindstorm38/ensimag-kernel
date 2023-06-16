@@ -1,11 +1,12 @@
+#include "stddef.h"
+#include "stdio.h"
+
+#include "internals.h"
 #include "interrupt.h"
 #include "process.h"
 #include "syscall.h"
 #include "pit.h"
 #include "cga.h"
-
-#include "stddef.h"
-#include "stdio.h"
 
 
 // Type alias for a syscall function handler.
@@ -34,6 +35,8 @@ syscall_handler_t syscall_handlers[SYSCALL_COUNT] = {
     [SC_CONSOLE_READ]           = NULL,
     [SC_CONSOLE_ENABLE]         = NULL,
 };
+
+struct syscall_context *syscall_context = NULL;
 
 
 /// Syscall interrupt handler defined in assembly.

@@ -1,5 +1,5 @@
 #include "process.h"
-#include "process_internals.h"
+#include "internals.h"
 
 
 /// Head of the all-processes linked list head.

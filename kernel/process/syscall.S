@@ -20,3 +20,4 @@ syscall_handler:
     popl %edi
 
     iret
+    # Note: after this, the kernel stack is empty.

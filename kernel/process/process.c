@@ -1,18 +1,16 @@
 #include "process.h"
+#include "segment.h"
 #include "stdbool.h"
 #include "stdint.h"
 #include "stddef.h"
 #include "string.h"
 #include "stdio.h"
 
-#include "process_internals.h"
+#include "internals.h"
 #include "memory.h"
 #include "cpu.h"
 #include "pit.h"
-
-
-// This context is never used at restoration.
-static struct process_context dummy_context;
+#include "syscall.h"
 
 
 // TODO: Create a stack overflow detection with a sentinel at bottom
@@ -26,18 +24,22 @@ static struct process_context dummy_context;
 /// Interrupts must be disabled before calling this function.
 static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg, enum process_state state) {
 
-    struct process *process = kalloc(sizeof(struct process));
-    if (process == NULL)
-        return NULL;
-
     // FIXME: This value need to be adjusted for function called at 
     // exit or in interrupts, it's not easy to get it right, for 
     // example using printf in those function requires 128 more words.
     size_t more_size = sizeof(size_t) * 32;
-    size_t prelude_size = sizeof(size_t) * 3;
+    size_t prelude_size = sizeof(size_t) * 2;
 
     // Check overflow while adding prelude size.
-    if (__builtin_add_overflow(stack_size, prelude_size + more_size, &stack_size)) {
+    if (__builtin_add_overflow(stack_size, prelude_size + more_size, &stack_size))
+        return NULL;
+
+    struct process *process = kalloc(sizeof(struct process));
+    if (process == NULL)
+        return NULL;
+    
+    void *kernel_stack = kalloc(KERNEL_STACK_SIZE);
+    if (kernel_stack == NULL) {
         kfree(process);
         return NULL;
     }
@@ -45,20 +47,43 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
     void *stack = kalloc(stack_size);
     if (stack == NULL) {
         kfree(process);
+        kfree(kernel_stack);
         return NULL;
     }
 
-    // Initialize stack...
+    // Initialize user stack...
     process->stack = stack;
     process->stack_size = stack_size;
 
     void *stack_top = stack + stack_size;
     size_t *stack_ptr = stack_top - prelude_size;
-    stack_ptr[0] = (size_t) entry;
-    stack_ptr[1] = (size_t) process_implicit_exit;
-    stack_ptr[2] = (size_t) arg;
+    stack_ptr[1] = (size_t) arg;
+    stack_ptr[0] = (size_t) process_implicit_exit;
 
-    process->context.esp = (uint32_t) stack_ptr;
+    // Initialize kernel stack...
+    process->kernel_stack = kernel_stack;
+
+    void *kernel_stack_top = process->kernel_stack + KERNEL_STACK_SIZE;
+    size_t kernel_stack_prelude = sizeof(uint32_t) * (5 + 5);
+    uint32_t *kernel_stack_ptr = kernel_stack_top - kernel_stack_prelude;
+
+    // Used by the startup function, that just call "iret"...
+    kernel_stack_ptr[9] = USER_DS;              // SS  (for iret)
+    kernel_stack_ptr[8] = (uint32_t) stack_ptr; // ESP (for iret)
+    kernel_stack_ptr[7] = 0;                    // EFLAGS (not initialized)
+    kernel_stack_ptr[6] = USER_CS;              // CS  (for iret)
+    kernel_stack_ptr[5] = (uint32_t) entry;     // EIP (for iret)
+    // Used by the first context switch...
+    kernel_stack_ptr[4] = (uint32_t) process_context_startup; // EIP (for ret)
+    kernel_stack_ptr[3] = 0; // EBP
+    kernel_stack_ptr[2] = 0; // EDI
+    kernel_stack_ptr[1] = 0; // ESI
+    kernel_stack_ptr[0] = 0; // EB
+
+    printf("kernel_stack_top: %p\n", kernel_stack_top);
+    printf("stack_ptr: %p\n", stack_ptr);
+
+    process->kernel_esp = (uint32_t) kernel_stack_ptr;
 
     // Initialize other fields
     strcpy(process->name, name);
@@ -224,7 +249,7 @@ void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     pit_set_handler(process_pit_handler);
 
     // Manually switch to the idle process context.
-    process_context_switch(&dummy_context, &process_active->context);
+    process_context_switch(NULL, process_active);
 
 }
 
@@ -275,6 +300,10 @@ void process_internal_exit(int code) {
 #if PROCESS_DEBUG
     printf("[%s] process_internal_exit(%d)\n", process_active->name, code);
 #endif
+
+    if (process_active->pid == 0) {
+        panic("Idle has exited, shutting down...");
+    }
 
     process_internal_kill(process_active, code, true);
     // Never reached.
@@ -448,12 +477,12 @@ void process_debug(struct process *process) {
     printf("== [ PROCESS %d ] ==\n", process->pid);
     printf("NAME:    %s\n", process->name);
     printf("STATE:   %d\n", process->state);
-    printf("CONTEXT:\n");
-    printf(" EBX: 0x%08X\n", process->context.ebx);
-    printf(" ESP: 0x%08X\n", process->context.esp);
-    printf(" EBP: 0x%08X\n", process->context.ebp);
-    printf(" ESI: 0x%08X\n", process->context.esi);
-    printf(" EDI: 0x%08X\n", process->context.edi);
+    // printf("CONTEXT:\n");
+    // printf(" EBX: 0x%08X\n", process->context.ebx);
+    // printf(" ESP: 0x%08X\n", process->context.esp);
+    // printf(" EBP: 0x%08X\n", process->context.ebp);
+    // printf(" ESI: 0x%08X\n", process->context.esi);
+    // printf(" EDI: 0x%08X\n", process->context.edi);
 
     // printf("STACK: %p -> %p\n", process->stack, process->stack + process->stack_size);
     // for (uint32_t *sp = (uint32_t *) (process->stack + process->stack_size - 1); (uint32_t) sp >= process->context.esp; sp--) {
