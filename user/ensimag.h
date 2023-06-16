@@ -2,23 +2,23 @@
 #define __ENSIMAG_H__
 
 int start(int (*pt_func)(void *), unsigned long ssize, int prio, const char *name, void *arg);
-void exit(int retval);
+void exit(int retval) __attribute__((noreturn));
 int getpid(void);
 int getprio(int pid);
 int chprio(int pid, int newprio);
 int waitpid(int pid, int *retval);
 int kill(int pid);
-
 void wait_clock(unsigned long clock);
-void clock_settings(unsigned long *quartz, unsigned long *ticks);
-unsigned long current_clock();
 
 int pcreate(int count);
 int pdelete(int fid);
-int preceive(int fid, int *message);
 int psend(int fid, int message);
+int preceive(int fid, int *message);
 int pcount(int fid, int *count);
 int preset(int fid);
+
+void clock_settings(unsigned long *quartz, unsigned long *ticks);
+unsigned long current_clock();
 
 void cons_echo(int on);
 int cons_read(char *string, unsigned long length);

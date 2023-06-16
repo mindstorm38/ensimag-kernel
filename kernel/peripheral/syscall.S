@@ -1,8 +1,22 @@
-.globl syscall_handler_entry
-syscall_handler_entry:
-    pushal
-    pushl %esp
-    call syscall_handler
-    addl $4, %esp
-    popal
+.globl syscall_handler
+syscall_handler:
+
+    pushl %edi
+    pushl %esi
+    pushl %edx
+    pushl %ecx
+    pushl %ebx
+
+    leal syscall_handlers, %ebx
+    # EBX contains the handlers base, move 4 by 4 in the table.
+    movl (%ebx,%eax,4), %ebx
+    # Call the resolved address, this function will use.
+    call %ebx
+
+    popl %ebx
+    popl %ecx
+    popl %edx
+    popl %esi
+    popl %edi
+
     iret

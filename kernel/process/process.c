@@ -420,7 +420,7 @@ void process_wait_clock(uint32_t clock) {
     printf("[%s] process_wait_clock(%d)\n", process_active->name, clock);
 #endif
 
-    if (clock <= pit_clock()) {
+    if (clock <= pit_clock_get()) {
 
         // The target clock is already passed, just advance.
         process_active->state = PROCESS_SCHED_AVAILABLE;

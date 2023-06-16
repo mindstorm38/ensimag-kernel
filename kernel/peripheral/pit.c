@@ -52,7 +52,7 @@ void pit_init(void) {
 
 }
 
-uint32_t pit_clock() {
+uint32_t pit_clock_get() {
     return clock;
 }
 
