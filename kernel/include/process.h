@@ -1,6 +1,7 @@
 #ifndef __PROCESS_H__
 #define __PROCESS_H__
 
+#include "stdbool.h"
 #include "stdint.h"
 #include "stddef.h"
 
@@ -56,5 +57,9 @@ int process_queue_receive(qid_t qid, int *message);
 int process_queue_count(qid_t qid, int *count);
 /// Remove all messages from a queue of given ID.
 int process_queue_reset(qid_t qid);
+
+/// Check that the current process has the right to access the given
+/// pointer.
+bool process_check_user_ptr(const void *ptr);
 
 #endif

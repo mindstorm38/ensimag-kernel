@@ -1,5 +1,6 @@
 #include "internals.h"
 #include "memory.h"
+#include "process.h"
 #include "stdio.h"
 
 #define QUEUES_CAPACITY 256
@@ -277,6 +278,9 @@ int process_queue_receive(qid_t qid, int *message) {
     printf("[%s] process_queue_receive(%d, %p)\n", process_active->name, qid, message);
 #endif
 
+    if (message != NULL && !process_check_user_ptr(message))
+        return -1;
+
     struct process_queue *queue = process_queue_from_qid(qid);
     if (queue == NULL)
         return -1;
@@ -335,6 +339,9 @@ int process_queue_count(qid_t qid, int *count) {
 #if QUEUE_DEBUG
     printf("[%s] process_queue_count(%d, %p)\n", process_active->name, qid, count);
 #endif
+
+    if (count != NULL && !process_check_user_ptr(count))
+        return -1;
 
     struct process_queue *queue = process_queue_from_qid(qid);
     if (queue == NULL)

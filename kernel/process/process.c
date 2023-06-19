@@ -19,12 +19,19 @@
 // of the stack, will be easier to debug.
 
 
+static size_t overall_count = 0;
+
+
 /// Internal function that allocate a process given. Callers of this
 /// function ('process_idle' and 'process_start' only) need to 
 /// initialize remaining fields (parent/child/sibling/state).
 /// 
 /// Interrupts must be disabled before calling this function.
 static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg, enum process_state state) {
+
+    // No more than 1000 concurrent process for now.
+    if (overall_count >= 1000)
+        return NULL;
 
     // FIXME: This value need to be adjusted for function called at 
     // exit or in interrupts, it's not easy to get it right, for 
@@ -98,6 +105,9 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
     process->priority = priority;
     process->state = state;
     process_sched_ring_insert(process);
+    
+    // Increment total process count.
+    overall_count++;
 
     return process;
 
@@ -147,6 +157,9 @@ static void process_free(struct process *process) {
     kfree(process);
     kfree(process->kernel_stack);
     user_stack_free(process->stack, process->stack_size);
+
+    // Decrement total count of processes.
+    overall_count--;
 
 }
 
@@ -265,6 +278,9 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
 
     if (priority < 0 || priority >= PROCESS_MAX_PRIORITY)
         return -1;
+
+    if (!process_check_user_ptr(name))
+        return -1;
     
     struct process *process = process_alloc(entry, stack_size, priority, name, arg, PROCESS_SCHED_AVAILABLE);
     if (process == NULL)
@@ -368,6 +384,9 @@ pid_t process_wait(pid_t pid, int *exit_code) {
 
     struct process *child = process_active->child;
     if (child == NULL)
+        return -1;
+    
+    if (exit_code != NULL && !process_check_user_ptr(exit_code))
         return -1;
     
 #if PROCESS_DEBUG
@@ -495,4 +514,12 @@ void process_debug(struct process *process) {
     // }
     // printf("\n");
 
+}
+
+
+extern char user_start;
+extern char user_end;
+
+bool process_check_user_ptr(const void *ptr) {
+    return (void *) &user_start <= ptr && ptr < (void *) &user_end;
 }
