@@ -4,51 +4,67 @@
 
 .globl syscall0
 syscall0:
-    movl 4(%esp), %eax
+    mov 4(%esp), %eax
     int $49
     ret
 
 .globl syscall1
 syscall1:
-    movl 4(%esp), %eax
-    movl 8(%esp), %ebx
+    push %ebx  # Callee-saved
+    mov 8(%esp), %eax
+    mov 12(%esp), %ebx
     int $49
+    pop %ebx
     ret
 
 .globl syscall2
 syscall2:
-    movl 4(%esp), %eax
-    movl 8(%esp), %ebx
-    movl 12(%esp), %ecx
+    push %ebx  # Callee-saved
+    mov 8(%esp), %eax
+    mov 12(%esp), %ebx
+    mov 16(%esp), %ecx
     int $49
+    pop %ebx
     ret
 
 .globl syscall3
 syscall3:
-    movl 4(%esp), %eax
-    movl 8(%esp), %ebx
-    movl 12(%esp), %ecx
-    movl 16(%esp), %edx
+    push %ebx  # Callee-saved
+    mov 8(%esp), %eax
+    mov 12(%esp), %ebx
+    mov 16(%esp), %ecx
+    mov 20(%esp), %edx
     int $49
+    pop %ebx
     ret
 
 .globl syscall4
 syscall4:
-    movl 4(%esp), %eax
-    movl 8(%esp), %ebx
-    movl 12(%esp), %ecx
-    movl 16(%esp), %edx
-    movl 20(%esp), %esi
+    push %ebx  # Callee-saved
+    push %esi
+    mov 12(%esp), %eax
+    mov 16(%esp), %ebx
+    mov 20(%esp), %ecx
+    mov 24(%esp), %edx
+    mov 28(%esp), %esi
     int $49
+    pop %esi
+    pop %ebx
     ret
 
 .globl syscall5
 syscall5:
-    movl 4(%esp), %eax
-    movl 8(%esp), %ebx
-    movl 12(%esp), %ecx
-    movl 16(%esp), %edx
-    movl 20(%esp), %esi
-    movl 24(%esp), %edi
+    push %ebx  # Callee-saved
+    push %esi
+    push %edi
+    mov 16(%esp), %eax
+    mov 20(%esp), %ebx
+    mov 24(%esp), %ecx
+    mov 28(%esp), %edx
+    mov 32(%esp), %esi
+    mov 36(%esp), %edi
     int $49
+    pop %edi
+    pop %esi
+    pop %ebx
     ret

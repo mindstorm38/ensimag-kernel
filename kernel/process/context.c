@@ -8,7 +8,7 @@
 /// Dummy stack used when previous process is null, to give a fake
 /// previous ESP that points to this array. The register will be
 /// stored in it be never used.
-static uint32_t dummy_stack[5];
+static uint32_t dummy_stack;
 
 /// Internal function that context switch the previous process' kernel
 /// code to the next one. Everything is stored in the process' kernel
@@ -25,7 +25,7 @@ void process_context_switch(struct process *prev, struct process *next) {
     tss.ss0 = KERNEL_DS;
     tss.esp0 = (uint32_t) next->kernel_stack + KERNEL_STACK_SIZE;
 
-    uint32_t *prev_esp = prev == NULL ? dummy_stack : &prev->kernel_esp;
+    uint32_t *prev_esp = prev == NULL ? &dummy_stack : &prev->kernel_esp;
     process_context_switch_kernel(prev_esp, next->kernel_esp);
 
 }

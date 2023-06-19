@@ -82,7 +82,6 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
     kernel_stack_ptr[1] = 0; // ESI
     kernel_stack_ptr[0] = 0; // EBX
 
-
 #if PROCESS_DEBUG
     printf("[?] process_alloc(...) kernel_stack_top: %p, stack_ptr: %p\n", kernel_stack_top, stack_ptr);
 #endif

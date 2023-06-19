@@ -37,7 +37,7 @@ process_context_switch_kernel:
     popl %esi
     popl %ebx
 
-    # The only thing remaining in stack is EIP, so we return.
+    # The only thing remaining in stack is RA, so we return.
     ret
 
 
@@ -58,19 +58,12 @@ process_context_startup:
     # | EIP    |
     # +--------+
 
-    # The process' kernel stack already contains all informations for
-    # using iret apart from the EFLAGS register that we just init
-    # below by pushing our current EFLAGS.
-    # pushfl
-    # popl %eax
-    # # Set IF (Interrupt Flag), interrupts are not masked in used mode.
-    # orl $0x200, %eax
-    # Move our new EFLAGS to the EFLAGS slot.
-    # movl %eax, 8(%esp)
-
     # Set the DS segment to the same as SS.
     movl 16(%esp), %eax
     movw %ax, %ds
+
+    # Don't leak kernel address to user code.
+    movl $0, %eax
 
     iret
 
