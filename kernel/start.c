@@ -1,4 +1,4 @@
-#include "debug/debugger.h"
+#include "./debug/debugger.h"
 
 #include "segment.h"
 #include "syscall.h"

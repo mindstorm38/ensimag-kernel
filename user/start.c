@@ -11,16 +11,17 @@ void console_putbytes(const char *s, int len) {
 
 static int user_child(void *arg) {
     (void) arg;
-    printf("Hello from user child process...\n");
+    while (1) {
+        printf("Hello from user child process (%d)...\n", getpid());
+        for (int i = 0; i < 500000000; i++);
+    }
     return 42;
 }
 
 void user_start(void) {
     printf("Hello from user program...\n");
-    int pid = start(user_child, 1024, 2, "user_child", NULL);
-    int retval;
-    waitpid(pid, &retval);
-    printf("Child pid: %d, exit: %d\n", pid, retval);
+    start(user_child, 1024, 1, "user_child", NULL);
+    start(user_child, 1024, 1, "user_child", NULL);
     while (1);
 }
 

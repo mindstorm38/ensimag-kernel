@@ -72,7 +72,7 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
     // Used by the startup function, that just call "iret"...
     kernel_stack_ptr[9] = USER_DS;              // SS  (for iret)
     kernel_stack_ptr[8] = (uint32_t) stack_ptr; // ESP (for iret)
-    kernel_stack_ptr[7] = 0;                    // EFLAGS (not initialized)
+    kernel_stack_ptr[7] = 0x202;                // EFLAGS (not initialized)
     kernel_stack_ptr[6] = USER_CS;              // CS  (for iret)
     kernel_stack_ptr[5] = (uint32_t) entry;     // EIP (for iret)
     // Used by the first context switch...

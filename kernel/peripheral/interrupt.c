@@ -45,16 +45,11 @@ void idt_remove_gate(uint8_t index) {
 
 /// This array is defined in assembly.
 extern uint32_t irq_handlers_entry[16];
-/// This array is exported to the assembly.
-static irq_handler_t irq_handlers[16];
-
-/// Called from assembly.
-void irq_generic_handler(uint8_t n) {
-    irq_handlers[n]();
-}
+/// This array is exported to the assembly and called from it.
+irq_handler_t irq_handlers[16];
 
 void irq_set_handler(uint8_t n, irq_handler_t handler) {
-    idt_interrupt_gate(32 + n, irq_handlers_entry[n], 0);
+    idt_interrupt_gate(IRQ_INTERRUPT_OFFSET + n, irq_handlers_entry[n], 0);
     irq_handlers[n] = handler;
 }
 
