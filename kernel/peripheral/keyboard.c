@@ -5,10 +5,8 @@
 #include "interrupt.h"
 #include "keyboard.h"
 #include "cpu.h"
+#include "ps2.h"
 
-#define KEYBOARD_DATA_RW 0x60
-#define KEYBOARD_STATUS_R 0x64
-#define KEYBOARD_CMD_W 0x64
 
 /* On utilise, http://www.vetra.com/scancodes.html
 
@@ -104,24 +102,10 @@ static struct keyboard_layout *current_layout;
 // static bool altgr = false;
 
 
-// static uint8_t keyboard_read_data() {
-//     return inb(KEYBOARD_DATA_RW);
-// }
-
-// static void keyboard_write_data(uint8_t value) {
-//     outb(value, KEYBOARD_DATA_RW);
-// }
-
-// static uint8_t keyboard_read_status() {
-//     return inb(KEYBOARD_STATUS_R);
-// }
-
-static void keyboard_write_command(uint8_t value) {
-    outb(value, KEYBOARD_CMD_W);
-}
-
 static void keyboard_irq_handler(void) {
     irq_eoi(IRQ_KEYBOARD);
+    ps2_read_data();
+    printf("keyboard...\n");
 }
 
 void keyboard_init(void) {
@@ -134,7 +118,7 @@ void keyboard_init(void) {
     irq_set_handler(IRQ_KEYBOARD, keyboard_irq_handler);
     irq_mask(IRQ_KEYBOARD, false);
 
-    keyboard_write_command(0b01000000);
+    ps2_write_command(0b01000000);
 
 }
 

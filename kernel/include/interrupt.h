@@ -23,7 +23,7 @@
 #define IRQ_GENERIC_9   9
 #define IRQ_GENERIC_10  10
 #define IRQ_GENERIC_11  11
-#define IRQ_PS2_MOUSE   12
+#define IRQ_MOUSE       12
 #define IRQ_INTERNAL_13 13
 #define IRQ_SATA_14     14
 #define IRQ_SATA_15     15
