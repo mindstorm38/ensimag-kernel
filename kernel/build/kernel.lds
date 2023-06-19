@@ -43,16 +43,23 @@ SECTIONS {
 		*(__ex_table)
 		*(.data)
 
-		/* The user program is wrapped in as data */
-		usercode_start = .;
-		*(.user)
-		usercode_end = .;
-
 		task_dump_screen = .;
 		*(.task_dump_screen)
 
-		_edata  =  .;
 	}
+
+	/* The user program is wrapped in as data */
+	/* Modification from THEO: Specifying the address so we can
+	 * call know user functions from kernel.
+     */
+	usercode_start = ALIGN(0x1000);
+	.user_data 0x1000000 : {
+		*(.user)
+		*(.kernel_user)
+	}
+	. = usercode_start + SIZEOF(.user_data);
+	_edata  =  .;
+	usercode_end = .;
 
 	.bss ALIGN(0x1000) : {
 		__bss_start = .;

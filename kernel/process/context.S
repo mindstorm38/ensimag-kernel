@@ -48,7 +48,16 @@ process_context_startup:
     # "called" when the first context switch called on a new process,
     # we arrive here and the only remaining stack element is the 
     # user code process' entry.
-    
+
+    # Stack layout is:
+    # +--------+
+    # | SS     |
+    # | ESP    |
+    # | EFLAGS |
+    # | CS     |
+    # | EIP    |
+    # +--------+
+
     # The process' kernel stack already contains all informations for
     # using iret apart from the EFLAGS register that we just init
     # below by pushing our current EFLAGS.
@@ -59,10 +68,28 @@ process_context_startup:
     # Move our new EFLAGS to the EFLAGS slot.
     movl %eax, 8(%esp)
 
+    # Set the DS segment to the same as SS.
+    movl 16(%esp), %eax
+    movw %ax, %ds
+
     iret
 
 
 .globl process_implicit_exit
+.section .kernel_user
 process_implicit_exit:
-    pushl %eax
-    call process_internal_exit
+    # pushl %eax
+    
+    # Here, %eax contains the return code.
+    # Implicit exit just fowards to exit syscall 'SC_PROCESS_EXIT' (1)
+
+    movl %eax, %ebx
+    movl $1, %eax
+    int $49
+
+    # Should not terminate here.
+0:
+    jmp 0b
+    
+
+    # call process_internal_exit

@@ -12,6 +12,8 @@
 #include "pit.h"
 #include "syscall.h"
 
+#include "../debug/user_stack_mem.h"
+
 
 // TODO: Create a stack overflow detection with a sentinel at bottom
 // of the stack, will be easier to debug.
@@ -44,7 +46,7 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
         return NULL;
     }
 
-    void *stack = kalloc(stack_size);
+    void *stack = user_stack_alloc(stack_size);
     if (stack == NULL) {
         kfree(process);
         kfree(kernel_stack);
@@ -78,10 +80,12 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
     kernel_stack_ptr[3] = 0; // EBP
     kernel_stack_ptr[2] = 0; // EDI
     kernel_stack_ptr[1] = 0; // ESI
-    kernel_stack_ptr[0] = 0; // EB
+    kernel_stack_ptr[0] = 0; // EBX
 
-    printf("kernel_stack_top: %p\n", kernel_stack_top);
-    printf("stack_ptr: %p\n", stack_ptr);
+
+#if PROCESS_DEBUG
+    printf("[?] process_alloc(...) kernel_stack_top: %p, stack_ptr: %p\n", kernel_stack_top, stack_ptr);
+#endif
 
     process->kernel_esp = (uint32_t) kernel_stack_ptr;
 
@@ -141,8 +145,9 @@ static void process_free(struct process *process) {
     }
 
     // Free resources.
-    kfree(process->stack);
     kfree(process);
+    kfree(process->kernel_stack);
+    user_stack_free(process->stack, process->stack_size);
 
 }
 
@@ -276,6 +281,7 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     
 #if PROCESS_DEBUG
     printf("[%s] process_start(...) -> %s\n", process_active->name, name);
+    printf("[%s] process_start(...) prio: %d, current prio: %d\n", process_active->name, process->priority, process_active->priority);
 #endif
 
     // If the new priority is higher than the current, we directly
