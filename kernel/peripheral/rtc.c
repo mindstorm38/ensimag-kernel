@@ -72,17 +72,19 @@ static void rtc_interrupt_handler() {
     time_update();
     // time_print();
 
-    irq_eoi(8);
+    irq_eoi(IRQ_RTC);
 
 }
 
 void rtc_init(void) {
 
+    panic("code to update");
+
     rtc_set_frequency();
     rtc_enable_interrupt();
-    irq_set_handler(8, rtc_interrupt_handler);
-    irq_mask(2, false);
-    irq_mask(8, false);
+    irq_set_handler(IRQ_RTC, rtc_interrupt_handler);
+    irq_mask(IRQ_SLAVE, false);
+    irq_mask(IRQ_RTC, false);
 
     // Re-enable NMI afterward.
     cmos_nmi_enable();

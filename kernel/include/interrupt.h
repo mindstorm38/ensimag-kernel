@@ -10,6 +10,24 @@
 /// Offset of the first interrupt for IRQ.
 #define IRQ_INTERRUPT_OFFSET 32
 
+// From Intel ICH9 spec.
+#define IRQ_PIT         0
+#define IRQ_KEYBOARD    1
+#define IRQ_SLAVE       2
+#define IRQ_SERIAL_A    3
+#define IRQ_SERIAL_B    4
+#define IRQ_GENERIC_5   5
+#define IRQ_FLOPPY      6
+#define IRQ_GENERIC_7   7
+#define IRQ_RTC         8
+#define IRQ_GENERIC_9   9
+#define IRQ_GENERIC_10  10
+#define IRQ_GENERIC_11  11
+#define IRQ_PS2_MOUSE   12
+#define IRQ_INTERNAL_13 13
+#define IRQ_SATA_14     14
+#define IRQ_SATA_15     15
+
 /// Type alias for interrupt handler function.
 typedef void (*irq_handler_t)();
 

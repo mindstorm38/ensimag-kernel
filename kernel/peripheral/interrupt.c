@@ -4,7 +4,6 @@
 #include "interrupt.h"
 #include "segment.h"
 #include "cpu.h"
-#include <stdint.h>
 
 #define PIC_MASTER_CMD  0x0020
 #define PIC_MASTER_MASK 0x0021

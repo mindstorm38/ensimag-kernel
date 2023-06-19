@@ -35,7 +35,7 @@ static void pit_set_frequency(void) {
 
 /// Internal function that handless PIT interrupts.
 static void pit_interrupt_handler(void) {
-    irq_eoi(0);
+    irq_eoi(IRQ_PIT);
     clock++;
     if (active_handler != NULL) {
         active_handler(clock);
@@ -47,8 +47,8 @@ void pit_init(void) {
     printf("Initializing PIT...\n");
 
     pit_set_frequency();
-    irq_set_handler(0, pit_interrupt_handler);
-    irq_mask(0, false);
+    irq_set_handler(IRQ_PIT, pit_interrupt_handler);
+    irq_mask(IRQ_PIT, false);
 
 }
 

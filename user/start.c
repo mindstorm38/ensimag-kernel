@@ -18,7 +18,7 @@ void user_start(void) {
 
 static int test_run_wrapper(void *arg) {
 	(void) arg;
-	for (int i = 18; i <= 18; i++) {
+	for (int i = 19; i <= 19; i++) {
 		printf("== RUNNING TEST %d ==\n", i);
 		int ret = test_run(i);
 		if (ret != 0)

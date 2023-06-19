@@ -1,5 +1,6 @@
 #include "./debug/debugger.h"
 
+#include "keyboard.h"
 #include "segment.h"
 #include "syscall.h"
 #include "process.h"
@@ -18,6 +19,7 @@ void kernel_start(void) {
 	printf("\fKernel starting...\n");
 	page_init();
 	pit_init();
+	keyboard_init();
 	syscall_init();
 
 	printf("Starting user program...\n");
