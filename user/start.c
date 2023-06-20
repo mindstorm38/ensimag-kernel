@@ -10,7 +10,7 @@ void console_putbytes(const char *s, int len) {
 }
 
 void user_start(void) {
-    printf("Hello from user program...\n");
+    printf("\adHello from user program...\ar\n");
     start(test_run_wrapper, 1024, 128, "test_run_wrapper", NULL);
     while (1);
 }

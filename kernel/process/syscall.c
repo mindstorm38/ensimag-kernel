@@ -66,5 +66,5 @@ void syscall_handler(void);
 void syscall_init(void) {
     printf("[    ] System calls init...");
     idt_interrupt_gate(SYSCALL_INTERRUPT, (uint32_t) syscall_handler, 3);
-    printf("\r[ OK ] System calls ready: %d syscalls\n", SYSCALL_COUNT);
+    printf("\r[ \aaOK\ar ] System calls ready: %d syscalls\n", SYSCALL_COUNT);
 }

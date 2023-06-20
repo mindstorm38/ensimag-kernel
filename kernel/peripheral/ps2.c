@@ -105,7 +105,7 @@ void ps2_init() {
 
     // Perform Controller Self Test
     if ((port_test = ps2_command_read(PS2_CMD_TEST)) != 0x55) {
-        printf("\r[FAIL] PS/2 driver failed self test. Code: %d\n", port_test);
+        printf("\r[\acFAIL\ar] PS/2 driver failed self test, code: %d\n", port_test);
         return;
     }
 
@@ -130,12 +130,12 @@ void ps2_init() {
 
     // Perform Interface Tests 
     if ((port_test = ps2_command_read(PS2_CMD_TEST_PORT_A)) != 0) {
-        printf("\r[FAIL] PS/2 port 1 failed test. Code: %d\n", port_test);
+        printf("\r[\acFAIL\ar] PS/2 port 1 failed test, code: %d\n", port_test);
         return;
     }
 
     if (ps2_dual && (port_test = ps2_command_read(PS2_CMD_TEST_PORT_B)) != 0) {
-        printf("\r[FAIL] PS/2 port 2 failed test. Code: %d\n", port_test);
+        printf("\r[\acFAIL\ar] PS/2 port 2 failed test, code: %d\n", port_test);
         return;
     }
 
@@ -151,7 +151,7 @@ void ps2_init() {
     ps2_config_write(conf);
 
     ps2_ready_ = true;
-    printf("\r[ OK ] PS/2 driver ready.  \n");
+    printf("\r[ \aaOK\ar ] PS/2 driver ready.  \n");
 
 }
 

@@ -1,5 +1,7 @@
+#include "stdbool.h"
 #include "string.h"
 #include "stdint.h"
+
 #include "cpu.h"
 #include "cga.h"
 
@@ -13,16 +15,18 @@ static uint32_t lig = 0;
 static uint32_t col = 0;
 static enum cga_color fg_color = CGA_WHITE;
 static enum cga_color bg_color = CGA_BLACK;
+/// True when waiting for a formatting color code.
+static bool waiting_format_code = false;
 
 
 /// This function get the pointer to the character at given position.
-static uint16_t *char_pointer(uint32_t line, uint32_t column) {
+static inline uint16_t *char_pointer(uint32_t line, uint32_t column) {
     return (uint16_t *) 0xB8000 + (line * 80 + column);
 }
 
 /// This function writes the given character at given position with
 /// particular foreground and background colors.
-static void char_write(uint32_t line, uint32_t column, char ch, enum cga_color fg, enum cga_color bg) {
+static inline void char_write(uint32_t line, uint32_t column, char ch, enum cga_color fg, enum cga_color bg) {
     uint16_t *ptr = char_pointer(line, column);
     *ptr = ((fg & 0b1111) << 8) | ((bg & 0b111) << 12) | ((uint16_t) ch);
 }
@@ -61,7 +65,17 @@ static void scroll_down(void) {
 
 static void char_write_formatted(char c) {
 
-    if (c >= 32 && c <= 126) {
+    if (waiting_format_code && (c >= '0' && c <= '9')) {
+        fg_color = c - '0';
+        waiting_format_code = false;
+    } else if (waiting_format_code && (c >= 'a' && c <= 'f')) {
+        fg_color = (c - 'a') + 10;
+        waiting_format_code = false;
+    } else if (waiting_format_code && c == 'r') {
+        fg_color = CGA_WHITE;
+        bg_color = CGA_BLACK;
+        waiting_format_code = false;
+    } else if (c >= 32 && c <= 126) {
         char_write(lig, col++, c, fg_color, bg_color);
     } else if (c == '\b') {
         if (col > 0) {
@@ -79,6 +93,10 @@ static void char_write_formatted(char c) {
         col = 0;
     } else if (c == '\r') {
         col = 0;
+    } else if (c == '\a') {
+        // We use the Bell character followed a color code for 
+        // changing the formatting of the output.
+        waiting_format_code = !waiting_format_code;
     }
 
     if (col >= CGA_COLS) {
