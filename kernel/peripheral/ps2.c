@@ -34,9 +34,6 @@
 #define PS2_CONF_PORT_B_CLOCK       0x20
 #define PS2_CONF_PORT_A_TRANSLATE   0x40
 
-#define PS2_DEV_ACK                 0xFA
-#define PS2_DEV_RESEND              0xFE
-
 // My implementation follows the osdev wiki page about PS/2:
 // https://wiki.osdev.org/%228042%22_PS/2_Controller
 
@@ -46,7 +43,8 @@ static bool ps2_ready_ = false;
 /// Indicates if port B is available.
 static bool ps2_dual_ = true;
 
-static uint16_t ps2_port_ids[2] = {0};
+static uint16_t ps2_port_ids[2] = { PS2_DEV_INVALID, PS2_DEV_INVALID };
+static ps2_device_handler_t ps2_device_handlers[2] = {0};
 
 
 static inline uint8_t ps2_read_status(void) {
@@ -112,12 +110,16 @@ static inline void ps2_config_write(uint8_t config) {
 
 /// Send a PS/2 command to a device and wait for a response.
 /// Some commands returns aa second byte after this command.
-static uint8_t ps2_device_command(enum ps2_port port, uint8_t command) {
-    if (port == PS2_SECOND) {
-        ps2_command(PS2_CMD_SEND_PORT_B);
-    }
-    ps2_write_data(command);
-    return ps2_read_data();
+uint8_t ps2_device_command(enum ps2_port port, uint8_t command) {
+    uint8_t data;
+    do {
+        if (port == PS2_SECOND) {
+            ps2_command(PS2_CMD_SEND_PORT_B);
+        }
+        ps2_write_data(command);
+        data = ps2_read_data();
+    } while (data == PS2_DEV_RES_RESEND);
+    return data;
 }
 
 /// Send the identify command to the given device port and read the
@@ -125,26 +127,25 @@ static uint8_t ps2_device_command(enum ps2_port port, uint8_t command) {
 static uint16_t ps2_device_identify(enum ps2_port port) {
 
     // Disable scanning.
-    if (ps2_device_command(port, 0xF5) != PS2_DEV_ACK)
-        return 0xFFFF;
+    if (ps2_device_command(port, 0xF5) != PS2_DEV_RES_ACK)
+        return PS2_DEV_INVALID;
     
     // Identify command.
-    if (ps2_device_command(port, 0xF2) != PS2_DEV_ACK)
-        return 0xFFFF;
+    if (ps2_device_command(port, 0xF2) != PS2_DEV_RES_ACK)
+        return PS2_DEV_INVALID;
 
     // Read identity.
     uint16_t id = 0;
-    for (int i = 0, shift = 0; i < 10000 && shift < 16; i++) {
+    for (int i = 0, shift = 0; i < 1000 && shift < 16; i++) {
         if (ps2_read_ready()) {
             id |= ((uint16_t) ps2_read_data_unchecked()) << shift;
             shift += 8;
-            break;
         }
     }
 
     // Enable scanning.
-    if (ps2_device_command(port, 0xF4) != PS2_DEV_ACK)
-        return 0xFFFF;
+    if (ps2_device_command(port, 0xF4) != PS2_DEV_RES_ACK)
+        return PS2_DEV_INVALID;
 
     return id;
 
@@ -153,15 +154,17 @@ static uint16_t ps2_device_identify(enum ps2_port port) {
 /// IRQ handler for PS/2 port A.
 static void ps2_port_a_handler(void) {
     irq_eoi(IRQ_PS2_A);
-    uint8_t data = ps2_read_data();
-    printf("port_a: %d\n", data);
+    ps2_device_handler_t handler = ps2_device_handlers[PS2_FIRST];
+    if (handler != NULL)
+        handler(ps2_read_data());
 }
 
 /// IRQ handler for PS/2 port B.
 static void ps2_port_b_handler(void) {
     irq_eoi(IRQ_PS2_B);
-    uint8_t data = ps2_read_data();
-    printf("port_b: %d\n", data);
+    ps2_device_handler_t handler = ps2_device_handlers[PS2_SECOND];
+    if (handler != NULL)
+        handler(ps2_read_data());
 }
 
 
@@ -239,14 +242,14 @@ void ps2_init(void) {
 
     // Detect Devices
 
-    if ((id = ps2_device_identify(PS2_FIRST)) == 0xFFFF) {
-        printf("\r[\acFAIL\ar] PS/2 first port failed to identify device\n");
+    if ((id = ps2_device_identify(PS2_FIRST)) == PS2_DEV_INVALID) {
+        printf("\r[\acFAIL\ar] PS/2 failed to identify first device\n");
     } else {
         ps2_port_ids[PS2_FIRST] = id;
     }
 
-    if (ps2_dual_ && (id = ps2_device_identify(PS2_SECOND)) == 0xFFFF) {
-        printf("\r[\acFAIL\ar] PS/2 second port failed to identify device\n");
+    if (ps2_dual_ && (id = ps2_device_identify(PS2_SECOND)) == PS2_DEV_INVALID) {
+        printf("\r[\acFAIL\ar] PS/2 failed to identify second device\n");
     } else if (ps2_dual_) {
         ps2_port_ids[PS2_SECOND] = id;
     }
@@ -282,4 +285,8 @@ bool ps2_dual(void) {
 
 uint16_t ps2_device_id(enum ps2_port port) {
     return ps2_port_ids[port];
+}
+
+void ps2_device_set_handler(enum ps2_port port, ps2_device_handler_t handler) {
+    ps2_device_handlers[port] = handler;
 }

@@ -6,6 +6,7 @@
 #include "keyboard.h"
 #include "cpu.h"
 #include "ps2.h"
+#include <stdint.h>
 
 
 /* On utilise, http://www.vetra.com/scancodes.html
@@ -101,6 +102,12 @@ static struct keyboard_layout *current_layout;
 // static bool alt = false;
 // static bool altgr = false;
 
+
+static void keyboard_handler(uint8_t data) {
+    printf("keyboard: %d\n", data);
+}
+
+
 void keyboard_init(void) {
 
     printf("[    ] Keyboard driver init...");
@@ -110,7 +117,19 @@ void keyboard_init(void) {
         return;
     }
 
+    if (ps2_device_id(PS2_FIRST) != PS2_DEV_KEYBOARD_MF2) {
+        printf("\r[\acFAIL\ar] Keyboard driver failed because no PS/2 keyboard detected: %d\n", ps2_device_id(PS2_FIRST));
+        return;
+    }
+
+    // Select scan code set 2.
+    if (ps2_device_command(PS2_FIRST, 0xF0) != PS2_DEV_RES_ACK) {
+        printf("\r[\acFAIL\ar] Keyboard driver scancode set 2 failed\n");
+        return;
+    }
+
     keyboard_select_layout(KEYBOARD_LAYOUT_FR);
+    ps2_device_set_handler(PS2_FIRST, keyboard_handler);
 
     printf("\r[ \aaOK\ar ] Keyboard driver ready       \n");
 

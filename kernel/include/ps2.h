@@ -4,11 +4,24 @@
 #include "stdint.h"
 #include "stdbool.h"
 
+
+#define PS2_DEV_RES_ACK         0xFA
+#define PS2_DEV_RES_RESEND      0xFE
+
+#define PS2_DEV_MOUSE           0x0000
+#define PS2_DEV_KEYBOARD_MF2    0x83AB
+#define PS2_DEV_INVALID         0xFFFF
+
+
 /// The PS/2 port to select.
 enum ps2_port {
     PS2_FIRST,
     PS2_SECOND,
 };
+
+/// Type lias for PS/2 device handler.
+typedef void (*ps2_device_handler_t)(uint8_t);
+
 
 /// Initialize the PS/2 controller driver.
 void ps2_init(void);
@@ -18,17 +31,10 @@ bool ps2_ready(void);
 bool ps2_dual(void);
 /// Get a device identifier for the given port.
 uint16_t ps2_device_id(enum ps2_port port);
-
-
-// /// Read status of the PS/2 controller.
-// uint8_t ps2_read_data(void);
-// void ps2_write_data(uint8_t data);
-
-// void ps2_command(uint8_t command);
-// uint8_t ps2_command_read(uint8_t command);
-// void ps2_command_write(uint8_t command, uint8_t data);
-
-// void ps2_send_port_a(uint8_t data);
-// void ps2_send_port_b(uint8_t data);
+/// Set the IRQ handler for the given device port.
+void ps2_device_set_handler(enum ps2_port port, ps2_device_handler_t handler);
+/// Send a PS/2 command to a device and wait for a response.
+/// Some commands returns aa second byte after this command.
+uint8_t ps2_device_command(enum ps2_port port, uint8_t command);
 
 #endif
