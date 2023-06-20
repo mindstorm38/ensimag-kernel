@@ -35,6 +35,9 @@ uint16_t ps2_device_id(enum ps2_port port);
 void ps2_device_set_handler(enum ps2_port port, ps2_device_handler_t handler);
 /// Send a PS/2 command to a device and wait for a response.
 /// Some commands returns aa second byte after this command.
-uint8_t ps2_device_command(enum ps2_port port, uint8_t command);
+///
+/// This function automatically disables IRQs for the port, to avoid
+/// the return values of being caught by handlers.
+uint8_t ps2_device_command(enum ps2_port port, uint8_t command, bool follow_ack);
 
 #endif

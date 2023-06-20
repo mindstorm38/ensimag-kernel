@@ -110,7 +110,11 @@ static inline void ps2_config_write(uint8_t config) {
 
 /// Send a PS/2 command to a device and wait for a response.
 /// Some commands returns aa second byte after this command.
-uint8_t ps2_device_command(enum ps2_port port, uint8_t command) {
+///
+/// This function is "unchecked", which means that IRQs should not
+/// be enabled for the given port. Otherwise they will catch return
+/// values.
+static uint8_t ps2_device_command_unchecked(enum ps2_port port, uint8_t command) {
     uint8_t data;
     do {
         if (port == PS2_SECOND) {
@@ -123,15 +127,16 @@ uint8_t ps2_device_command(enum ps2_port port, uint8_t command) {
 }
 
 /// Send the identify command to the given device port and read the
-/// device identifier.
+/// device identifier. Should be called when IRQs are disabled, in
+/// the init code.
 static uint16_t ps2_device_identify(enum ps2_port port) {
 
     // Disable scanning.
-    if (ps2_device_command(port, 0xF5) != PS2_DEV_RES_ACK)
+    if (ps2_device_command_unchecked(port, 0xF5) != PS2_DEV_RES_ACK)
         return PS2_DEV_INVALID;
     
     // Identify command.
-    if (ps2_device_command(port, 0xF2) != PS2_DEV_RES_ACK)
+    if (ps2_device_command_unchecked(port, 0xF2) != PS2_DEV_RES_ACK)
         return PS2_DEV_INVALID;
 
     // Read identity.
@@ -144,7 +149,7 @@ static uint16_t ps2_device_identify(enum ps2_port port) {
     }
 
     // Enable scanning.
-    if (ps2_device_command(port, 0xF4) != PS2_DEV_RES_ACK)
+    if (ps2_device_command_unchecked(port, 0xF4) != PS2_DEV_RES_ACK)
         return PS2_DEV_INVALID;
 
     return id;
@@ -155,16 +160,22 @@ static uint16_t ps2_device_identify(enum ps2_port port) {
 static void ps2_port_a_handler(void) {
     irq_eoi(IRQ_PS2_A);
     ps2_device_handler_t handler = ps2_device_handlers[PS2_FIRST];
-    if (handler != NULL)
-        handler(ps2_read_data());
+    uint8_t data = ps2_read_data_unchecked();
+    // We check that we don't get a ACK, because the interrupt
+    // may be triggered because of device command done in kernel
+    // mode.
+    // printf("data: 0x%02X\n", data);
+    if (handler != NULL && data != PS2_DEV_RES_ACK)
+        handler(data);
 }
 
 /// IRQ handler for PS/2 port B.
 static void ps2_port_b_handler(void) {
     irq_eoi(IRQ_PS2_B);
     ps2_device_handler_t handler = ps2_device_handlers[PS2_SECOND];
-    if (handler != NULL)
-        handler(ps2_read_data());
+    uint8_t data = ps2_read_data_unchecked();
+    if (handler != NULL && data != PS2_DEV_RES_ACK)
+        handler(data);
 }
 
 
@@ -240,8 +251,7 @@ void ps2_init(void) {
     if (ps2_dual_)
         ps2_command(PS2_CMD_ENABLE_PORT_B);
 
-    // Detect Devices
-
+    // Identify Devices
     if ((id = ps2_device_identify(PS2_FIRST)) == PS2_DEV_INVALID) {
         printf("\r[\acFAIL\ar] PS/2 failed to identify first device\n");
     } else {
@@ -254,7 +264,7 @@ void ps2_init(void) {
         ps2_port_ids[PS2_SECOND] = id;
     }
 
-    // Re-enable IRQs.
+    // Re-enable IRQs generation.
     conf = ps2_config_read();
     conf |= PS2_CONF_PORT_A_INT;
     if (ps2_dual_)
@@ -272,6 +282,7 @@ void ps2_init(void) {
 
     ps2_ready_ = true;
     printf("\r[ \aaOK\ar ] PS/2 driver ready%s     \n", ps2_dual_ ? " (dual channel)" : "");
+    printf("       first id: 0x%04X, second id: 0x%04X\n", ps2_port_ids[PS2_FIRST], ps2_port_ids[PS2_SECOND]);
 
 }
 
@@ -288,5 +299,15 @@ uint16_t ps2_device_id(enum ps2_port port) {
 }
 
 void ps2_device_set_handler(enum ps2_port port, ps2_device_handler_t handler) {
+    assert(handler != NULL);
     ps2_device_handlers[port] = handler;
+}
+
+uint8_t ps2_device_command(enum ps2_port port, uint8_t command, bool follow_ack) {
+    uint8_t data = ps2_device_command_unchecked(port, command);
+    if (follow_ack && data == PS2_DEV_RES_ACK) {
+        return ps2_read_data();
+    } else {
+        return data;
+    }
 }
