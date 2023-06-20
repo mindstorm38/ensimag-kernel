@@ -101,31 +101,18 @@ static struct keyboard_layout *current_layout;
 // static bool alt = false;
 // static bool altgr = false;
 
-
-static void keyboard_irq_handler(void) {
-
-    irq_eoi(IRQ_KEYBOARD);
-    ps2_read_data();
-    printf("keyboard...\n");
-    
-}
-
 void keyboard_init(void) {
 
     printf("[    ] Keyboard driver init...");
 
     if (!ps2_ready()) {
-        printf("\r[\acFAIL\ar] Keyboard driver failed because PS/2 driver has failed.\n");
+        printf("\r[\acFAIL\ar] Keyboard driver failed because PS/2 driver has failed\n");
         return;
     }
 
     keyboard_select_layout(KEYBOARD_LAYOUT_FR);
-    
-    // Keyboard is on IRQ 1 (table 5-13 of Intel ICH9).
-    irq_set_handler(IRQ_KEYBOARD, keyboard_irq_handler);
-    irq_mask(IRQ_KEYBOARD, false);
 
-    printf("\r[ \aaOK\ar ] Keyboard driver ready.    \n");
+    printf("\r[ \aaOK\ar ] Keyboard driver ready       \n");
 
 }
 

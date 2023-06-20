@@ -50,7 +50,7 @@ void pit_init(void) {
     irq_set_handler(IRQ_PIT, pit_interrupt_handler);
     irq_mask(IRQ_PIT, false);
 
-    printf("\r[ \aaOK\ar ] PIT ready.   \n");
+    printf("\r[ \aaOK\ar ] PIT ready     \n");
 
 }
 

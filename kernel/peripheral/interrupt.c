@@ -61,6 +61,9 @@ void irq_eoi(uint8_t n) {
 
 void irq_mask(uint8_t n, bool masked) {
     bool master = n < 8;
+    if (!master && !masked) {
+        irq_mask(IRQ_SLAVE, false);
+    }
     uint8_t mask_port = master ? PIC_MASTER_MASK : PIC_SLAVE_MASK;
     uint8_t current_mask = inb(mask_port);
     uint8_t mask = 1 << (master ? n : (n - 8));

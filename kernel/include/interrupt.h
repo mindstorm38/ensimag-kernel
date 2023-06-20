@@ -12,7 +12,7 @@
 
 // From Intel ICH9 spec.
 #define IRQ_PIT         0
-#define IRQ_KEYBOARD    1
+#define IRQ_PS2_A       1
 #define IRQ_SLAVE       2
 #define IRQ_SERIAL_A    3
 #define IRQ_SERIAL_B    4
@@ -23,7 +23,7 @@
 #define IRQ_GENERIC_9   9
 #define IRQ_GENERIC_10  10
 #define IRQ_GENERIC_11  11
-#define IRQ_MOUSE       12
+#define IRQ_PS2_B       12
 #define IRQ_INTERNAL_13 13
 #define IRQ_SATA_14     14
 #define IRQ_SATA_15     15

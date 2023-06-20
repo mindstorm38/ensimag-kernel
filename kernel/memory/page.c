@@ -54,7 +54,7 @@ void page_init() {
         page_set_allocated(i, true);
     }
 
-    printf("\r[ \aaOK\ar ] Page allocator ready.        \n");
+    printf("\r[ \aaOK\ar ] Page allocator ready          \n");
     printf("       heap: %d Mio, pages: %d, meta pages: %d\n", 
         heap_size / 1048576,
         page_count,

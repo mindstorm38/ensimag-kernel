@@ -22,7 +22,7 @@ void kernel_start(void) {
 	ps2_init();
 	keyboard_init();
 	syscall_init();
-	printf("[ \aaOK\ar ] Kernel ready.\n");
+	printf("[ \aaOK\ar ] Kernel ready\n");
 
 	printf("\n\n\n");
 

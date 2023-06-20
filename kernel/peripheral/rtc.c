@@ -83,7 +83,6 @@ void rtc_init(void) {
     rtc_set_frequency();
     rtc_enable_interrupt();
     irq_set_handler(IRQ_RTC, rtc_interrupt_handler);
-    irq_mask(IRQ_SLAVE, false);
     irq_mask(IRQ_RTC, false);
 
     // Re-enable NMI afterward.
