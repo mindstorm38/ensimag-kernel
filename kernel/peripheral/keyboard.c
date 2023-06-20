@@ -112,6 +112,11 @@ void keyboard_init(void) {
 
     printf("[    ] Keyboard driver init...");
 
+    if (!ps2_ready()) {
+        printf("\r[FAIL] Keyboard driver failed: PS/2 driver has failed.");
+        return;
+    }
+
     keyboard_select_layout(KEYBOARD_LAYOUT_FR);
     
     // Keyboard is on IRQ 1 (table 5-13 of Intel ICH9).
