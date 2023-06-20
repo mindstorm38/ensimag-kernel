@@ -6,58 +6,77 @@
 #include "keyboard.h"
 #include "cpu.h"
 #include "ps2.h"
-#include <stdint.h>
 
 
 /// Following tables are defining conversion from scancode to ascii characters, returning zero if not a visual character.
 /// For each layout, there are 3 tables: [default, shift, altgr]
 struct keyboard_layout_impl {
     enum keyboard_layout id;
-    char initial[256];
-    char shift[256];
-    char alt_graph[256];
+    enum keyboard_key normal[256];
+    enum keyboard_key extended[256];
 };
 
 /// Definition of all layouts.
 static struct keyboard_layout_impl all_layouts[KEYBOARD_LAYOUT_COUNT] = {
     {
         KEYBOARD_LAYOUT_FR,
-        {0, 0, 0, 0, 0, 0, },
-        {0},
-        {0}
+        { 0, K_F9, 0, K_F5, K_F3, K_F1, K_F2, K_F12, 0, K_F10, K_F8, K_F6, K_F4, K_TAB, K_BACK_TICK, 0, 0, K_LEFT_ALT, K_LEFT_SHIFT, 0, K_LEFT_CTRL, K_Q, K_1, 0, 0, 0, K_Z, K_S, K_A, K_W, K_2, 0, 0, K_C, K_X, K_D, K_E, K_4, K_3, 0, 0, K_SPACE, K_V, K_F, K_T, K_R, K_5, 0, 0, K_N, K_B, K_H, K_G, K_Y, K_6, 0, 0, 0, K_M, K_J, K_U, K_7, K_8, 0, 0, K_COMMA, K_K, K_I, K_O, K_0, K_9, 0, 0, K_PERIOD, K_SLASH, K_L, K_SEMICOLON, K_P, K_DASH, 0, 0, 0, K_APOSTROPHE, 0, K_OPEN_BRACKET, K_EQUAL, 0, 0, K_CAPS_LOCK, K_RIGHT_SHIFT, K_ENTER, K_CLOSE_BRACKET, 0, K_BACKSLASH, 0, 0, 0, 0, 0, 0, 0, 0, K_BACKSPACE, 0, 0, K_1, 0, K_4, K_7, 0, 0, 0, K_0, K_PERIOD, K_2, K_5, K_6, K_8, K_ESCAPE, K_NUM_LOCK, K_F11, K_PLUS, K_3, K_MINUS, K_MUL, K_9, K_SCROLL_LOCK, 0, 0, 0, 0, K_F7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, K_WWW_SEARCH, K_RIGHT_ALT, K_PRINT_SCREEN, 0, K_RIGHT_CTRL, K_PREVIOUS_TRACK, 0, 0, K_WWW_FAVOURITES, 0, 0, 0, 0, 0, 0, K_LEFT_GUI, K_WWW_REFRESH, K_VOLUME_DOWN, 0, K_VOLUME_MUTE, 0, 0, 0, K_RIGHT_GUI, K_WWW_STOP, 0, 0, K_CALCULATOR, 0, 0, 0, K_APPS, K_WWW_FORWARD, 0, K_VOLUME_UP, 0, K_PLAY_PAUSE, 0, 0, K_ACPI_POWER, K_WWW_BACK, 0, K_WWW_HOME, K_STOP, 0, 0, 0, K_ACPI_SLEEP, K_MY_COMPUTER, 0, 0, 0, 0, 0, 0, 0, K_EMAIL, 0, K_SLASH, 0, 0, K_NEXT_TRACK, 0, 0, K_MEDIA_SELECT, 0, 0, 0, 0, 0, 0, 0, 0, 0, K_ENTER, 0, 0, 0, K_ACPI_WAKE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, K_END, 0, K_CURSOR_LEFT, K_HOME, 0, 0, 0, K_INSERT, K_DELETE, K_CURSOR_DOWN, 0, K_CURSOR_RIGHT, K_CURSOR_UP, 0, 0, 0, 0, K_PAGE_DOWN, 0, 0, K_PAGE_UP, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
     }
 };
 
-// static struct keyboard_layout KEYBOARD_LAYOUT_FR_ = {
-//     KEYBOARD_LAYOUT_FR,
-//     {0, 0, '&', 'e', '"', '\'', '(', '-', 'e', '_', 'c', 'a', ')', '=', 0, 0, 'a', 'z', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '^', '$', 0, 0, 'q', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'u', '*', 0, '\\', 'w', 'x', 'c', 'v', 'b', 'n', ',', ';', ':', '!', 0, 0, 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-//     {0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 0, '+', 0, 0, 'A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 0, 0, 0, 0, 'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', '%', 'u', 0, '\\', 'W', 'X', 'C', 'V', 'B', 'N', '?', '.', '/', 0, 0, 0, 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-//     {0, 0, 0, '~', '#', '{', '[', '|', '`', '\\', '^', '@', ']', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '~', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '`', 0, '\\', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-// };
-
 static struct keyboard_layout_impl *current_layout;
 
-// static uint8_t last_scancode = 0;
-// static bool shift = false;
-// static bool ctrl = false;
-// static bool alt = false;
-// static bool altgr = false;
+static bool scan_break = false;
+static bool scan_extended = false;
 
 
-static uint8_t last_scancode = 0;
+/// Internal keyboard key code handler.
+static void keyboard_key_handler(enum keyboard_key key, bool release) {
+    
+    if (key >= K_F1 && key <= K_F12) {
+        printf("key: F%d", key - K_F1 + 1);
+    } else if (key >= K_A && key <= K_Z) {
+        printf("key: %c", key - K_A + 'A');
+    } else if (key >= K_0 && key <= K_9) {
+        printf("key: %c", key - K_0 + '0');
+    } else {
+        printf("key: not printable");
+    }
+
+    if (release) {
+        printf(" (release)\n");
+    } else {
+        printf("\n");
+    }
+
+}
 
 
+/// Internal PS/2 interrupt handler for scancode.
 static void keyboard_handler(uint8_t scancode) {
 
-    printf("0x%02X\n", scancode);
+    if (scancode == 0xF0) {
+        scan_break = true;
+    } else if (scancode == 0xE0) {
+        scan_extended = true;
+    } else {
 
-    // bool break_scancode = false;
+        enum keyboard_key key;
+        if (scan_extended) {
+            key = current_layout->extended[scancode];
+            scan_extended = false;
+        } else {
+            key = current_layout->normal[scancode];
+        }
 
-    // if (last_scancode == 0xF0) {
-    //     break_scancode = true;
-    // }
+        if (key != 0) {
+            keyboard_key_handler(key, scan_break);
+        }
+        
+        scan_break = false;
 
-    last_scancode = scancode;
+    }
 
 }
 
