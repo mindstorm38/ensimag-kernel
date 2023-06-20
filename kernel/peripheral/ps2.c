@@ -3,6 +3,7 @@
 #include "cpu.h"
 
 #include "stdio.h"
+#include <stdint.h>
 
 #define PS2_DATA_RW    0x0060
 #define PS2_STATUS_R   0x0064
@@ -33,9 +34,19 @@
 #define PS2_CONF_PORT_B_CLOCK       0x20
 #define PS2_CONF_PORT_A_TRANSLATE   0x40
 
+#define PS2_DEV_ACK                 0xFA
+#define PS2_DEV_RESEND              0xFE
 
 // My implementation follows the osdev wiki page about PS/2:
 // https://wiki.osdev.org/%228042%22_PS/2_Controller
+
+
+/// Indicates if the PS/2 controller is ready to be used.
+static bool ps2_ready_ = false;
+/// Indicates if port B is available.
+static bool ps2_dual_ = true;
+
+static uint16_t ps2_port_ids[2] = {0};
 
 
 static inline uint8_t ps2_read_status(void) {
@@ -43,12 +54,12 @@ static inline uint8_t ps2_read_status(void) {
 }
 
 /// Return true if output data can be read.
-static inline bool ps2_output_ready(void) {
+static inline bool ps2_read_ready(void) {
     return (ps2_read_status() & PS2_STATUS_OUTPUT_BUFFER) != 0;
 }
 
 /// Return true if input data can be written.
-static inline bool ps2_input_ready(void) {
+static inline bool ps2_write_ready(void) {
     return (ps2_read_status() & PS2_STATUS_INPUT_BUFFER) == 0;
 }
 
@@ -60,20 +71,93 @@ static inline void ps2_write_data_unchecked(uint8_t data) {
     outb(data, PS2_DATA_RW);
 }
 
+static uint8_t ps2_read_data(void) {
+    while (!ps2_read_ready());
+    return ps2_read_data_unchecked();
+}
+
+static void ps2_write_data(uint8_t data) {
+    while (!ps2_write_ready());
+    ps2_write_data_unchecked(data);
+}
+
+/// Basic function to send the given command to the PS/2 controller.
+static inline void ps2_command(uint8_t command) {
+    outb(command, PS2_CMD_W);
+}
+
+/// Basic function to send the given command to the PS/2 controller
+/// and wait for a response.
+static inline uint8_t ps2_command_read(uint8_t command) {
+    ps2_command(command);
+    return ps2_read_data();
+}
+
+/// Basic function to send the given command to the PS/2 controller
+/// followed by another data byte.
+static inline void ps2_command_write(uint8_t command, uint8_t data) {
+    ps2_command(command);
+    ps2_write_data(data);
+}
+
+/// Read the PS/2 controller config byte.
 static inline uint8_t ps2_config_read(void) {
     return ps2_command_read(PS2_CMD_READ_CONF);
 }
 
+/// Write the PS/2 controller config byte.
 static inline void ps2_config_write(uint8_t config) {
     ps2_command_write(PS2_CMD_WRITE_CONF, config);
 }
 
+/// Send a PS/2 command to a device and wait for a response.
+/// Some commands returns aa second byte after this command.
+static uint8_t ps2_device_command(enum ps2_port port, uint8_t command) {
+    if (port == PS2_SECOND) {
+        ps2_command(PS2_CMD_SEND_PORT_B);
+    }
+    ps2_write_data(command);
+    return ps2_read_data();
+}
+
+/// Send the identify command to the given device port and read the
+/// device identifier.
+static uint16_t ps2_device_identify(enum ps2_port port) {
+
+    // Disable scanning.
+    if (ps2_device_command(port, 0xF5) != PS2_DEV_ACK)
+        return 0xFFFF;
+    
+    // Identify command.
+    if (ps2_device_command(port, 0xF2) != PS2_DEV_ACK)
+        return 0xFFFF;
+
+    // Read identity.
+    uint16_t id = 0;
+    for (int i = 0, shift = 0; i < 10000 && shift < 16; i++) {
+        if (ps2_read_ready()) {
+            id |= ((uint16_t) ps2_read_data_unchecked()) << shift;
+            shift += 8;
+            break;
+        }
+    }
+
+    // Enable scanning.
+    if (ps2_device_command(port, 0xF4) != PS2_DEV_ACK)
+        return 0xFFFF;
+
+    return id;
+
+}
+
+/// IRQ handler for PS/2 port A.
 static void ps2_port_a_handler(void) {
     irq_eoi(IRQ_PS2_A);
     uint8_t data = ps2_read_data();
     printf("port_a: %d\n", data);
 }
 
+/// IRQ handler for PS/2 port B.
 static void ps2_port_b_handler(void) {
     irq_eoi(IRQ_PS2_B);
     uint8_t data = ps2_read_data();
@@ -81,24 +165,19 @@ static void ps2_port_b_handler(void) {
 }
 
 
-/// Indicates if the PS/2 controller is ready to be used.
-static bool ps2_ready_ = false;
-/// Indicates if port B is available.
-static bool ps2_dual_ = true;
-
-
 void ps2_init(void) {
 
     printf("[    ] PS/2 driver init...");
 
     uint8_t conf, port_test;
+    uint16_t id;
 
     // Disable Devices
     ps2_command(PS2_CMD_DISABLE_PORT_A);
     ps2_command(PS2_CMD_DISABLE_PORT_B);
 
     // Flush The Output Buffer 
-    if (ps2_output_ready())
+    if (ps2_read_ready())
         ps2_read_data_unchecked();
 
     // Set the Controller Configuration Byte
@@ -144,12 +223,12 @@ void ps2_init(void) {
 
     // Perform Interface Tests 
     if ((port_test = ps2_command_read(PS2_CMD_TEST_PORT_A)) != 0) {
-        printf("\r[\acFAIL\ar] PS/2 port 1 failed test, code: %d\n", port_test);
+        printf("\r[\acFAIL\ar] PS/2 first port failed test, code: %d\n", port_test);
         return;
     }
 
     if (ps2_dual_ && (port_test = ps2_command_read(PS2_CMD_TEST_PORT_B)) != 0) {
-        printf("\r[\acFAIL\ar] PS/2 port 2 failed test, code: %d\n", port_test);
+        printf("\r[\acFAIL\ar] PS/2 second port failed test, code: %d\n", port_test);
         return;
     }
 
@@ -158,6 +237,21 @@ void ps2_init(void) {
     if (ps2_dual_)
         ps2_command(PS2_CMD_ENABLE_PORT_B);
 
+    // Detect Devices
+
+    if ((id = ps2_device_identify(PS2_FIRST)) == 0xFFFF) {
+        printf("\r[\acFAIL\ar] PS/2 first port failed to identify device\n");
+    } else {
+        ps2_port_ids[PS2_FIRST] = id;
+    }
+
+    if (ps2_dual_ && (id = ps2_device_identify(PS2_SECOND)) == 0xFFFF) {
+        printf("\r[\acFAIL\ar] PS/2 second port failed to identify device\n");
+    } else if (ps2_dual_) {
+        ps2_port_ids[PS2_SECOND] = id;
+    }
+
+    // Re-enable IRQs.
     conf = ps2_config_read();
     conf |= PS2_CONF_PORT_A_INT;
     if (ps2_dual_)
@@ -186,35 +280,6 @@ bool ps2_dual(void) {
     return ps2_dual_;
 }
 
-uint8_t ps2_read_data(void) {
-    while (!ps2_output_ready());
-    return ps2_read_data_unchecked();
-}
-
-void ps2_write_data(uint8_t data) {
-    while (!ps2_input_ready());
-    ps2_write_data_unchecked(data);
-}
-
-void ps2_command(uint8_t command) {
-    outb(command, PS2_CMD_W);
-}
-
-uint8_t ps2_command_read(uint8_t command) {
-    ps2_command(command);
-    return ps2_read_data();
-}
-
-void ps2_command_write(uint8_t command, uint8_t data) {
-    ps2_command(command);
-    ps2_write_data(data);
-}
-
-void ps2_send_port_a(uint8_t data) {
-    ps2_write_data(data);
-}
-
-void ps2_send_port_b(uint8_t data) {
-    ps2_command(PS2_CMD_SEND_PORT_B);
-    ps2_write_data(data);
+uint16_t ps2_device_id(enum ps2_port port) {
+    return ps2_port_ids[port];
 }
