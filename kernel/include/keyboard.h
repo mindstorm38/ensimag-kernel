@@ -13,6 +13,8 @@ enum keyboard_layout {
 
 /// Definition of key codes, converted from scan codes.
 enum keyboard_key {
+    // Unknown key translation.
+    K_UNKOWN,
     // Control characters...
     K_ESCAPE,
     K_ENTER,
@@ -134,11 +136,31 @@ enum keyboard_key {
     K_Z,
 } __attribute__((__packed__));
 
+/// Define the action of a keyboard event.
+enum keyboard_action {
+    K_PRESS,
+    K_RELEASE
+};
+
+#define K_MOD_CTRL      0x01
+#define K_MOD_SHIFT     0x02
+#define K_MOD_ALT       0x04
+#define K_MOD_ALT_GRAPH 0x08
+
+typedef void (*keyboard_key_handler_t)(enum keyboard_key key, uint32_t scancode, enum keyboard_action action, uint8_t mods);
+typedef void (*keyboard_char_handler_t)(char ch);
+
 
 /// Initialize keyboard interrupts.
 void keyboard_init(void);
-
-/// Select the layout of the keyboard, used to differentiate scancode.
-void keyboard_select_layout(enum keyboard_layout layout);
+/// Select the layout of the keyboard, which define how raw scancodes
+/// are converted to key codes (enum keyboard_key).
+void keyboard_set_layout(enum keyboard_layout layout);
+/// Set the key handler, called when a key event happens.
+void keyboard_set_key_handler(keyboard_key_handler_t handler);
+/// Set the character handler, called when a printable character is
+/// pressed. This handler handles control, shift and other modifiers
+/// for you.
+void keyboard_set_char_handler(keyboard_char_handler_t handler);
 
 #endif

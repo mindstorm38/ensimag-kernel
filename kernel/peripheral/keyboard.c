@@ -6,6 +6,7 @@
 #include "keyboard.h"
 #include "cpu.h"
 #include "ps2.h"
+#include <assert.h>
 
 
 /// Following tables are defining conversion from scancode to ascii characters, returning zero if not a visual character.
@@ -30,25 +31,15 @@ static struct keyboard_layout_impl *current_layout;
 static bool scan_break = false;
 static bool scan_extended = false;
 
+static keyboard_key_handler_t key_handler = NULL;
+static keyboard_char_handler_t char_handler = NULL;
+
 
 /// Internal keyboard key code handler.
-static void keyboard_key_handler(enum keyboard_key key, bool release) {
+static void keyboard_key_handler(enum keyboard_key key, uint32_t scancode, enum keyboard_action action) {
     
-    if (key >= K_F1 && key <= K_F12) {
-        printf("key: F%d", key - K_F1 + 1);
-    } else if (key >= K_A && key <= K_Z) {
-        printf("key: %c", key - K_A + 'A');
-    } else if (key >= K_0 && key <= K_9) {
-        printf("key: %c", key - K_0 + '0');
-    } else {
-        printf("key: not printable");
-    }
-
-    if (release) {
-        printf(" (release)\n");
-    } else {
-        printf("\n");
-    }
+    if (key_handler != NULL)
+        key_handler(key, scancode, action);
 
 }
 
@@ -70,9 +61,7 @@ static void keyboard_handler(uint8_t scancode) {
             key = current_layout->normal[scancode];
         }
 
-        if (key != 0) {
-            keyboard_key_handler(key, scan_break);
-        }
+        keyboard_key_handler(scancode, key, scan_break);
         
         scan_break = false;
 
@@ -107,13 +96,23 @@ void keyboard_init(void) {
         return;
     }
 
-    keyboard_select_layout(KEYBOARD_LAYOUT_FR);
+    keyboard_set_layout(KEYBOARD_LAYOUT_FR);
     ps2_device_set_handler(PS2_FIRST, keyboard_handler);
 
     printf("\r[ \aaOK\ar ] Keyboard driver ready       \n");
 
 }
 
-void keyboard_select_layout(enum keyboard_layout layout) {
+void keyboard_set_layout(enum keyboard_layout layout) {
     current_layout = &all_layouts[layout];
+}
+
+void keyboard_set_key_handler(keyboard_key_handler_t handler) {
+    assert(handler != NULL);
+    key_handler = handler;
+}
+
+void keyboard_set_char_handler(keyboard_char_handler_t handler) {
+    assert(handler != NULL);
+    char_handler = handler;
 }
