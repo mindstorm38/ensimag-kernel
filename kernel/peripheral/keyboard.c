@@ -110,7 +110,7 @@ static void keyboard_irq_handler(void) {
 
 void keyboard_init(void) {
 
-    printf("Initializing keyboard...\n");
+    printf("[    ] Keyboard driver init...");
 
     keyboard_select_layout(KEYBOARD_LAYOUT_FR);
     
@@ -118,7 +118,7 @@ void keyboard_init(void) {
     irq_set_handler(IRQ_KEYBOARD, keyboard_irq_handler);
     irq_mask(IRQ_KEYBOARD, false);
 
-    ps2_write_command(0b01000000);
+    printf("\r[ OK ] Keyboard driver ready.    \n");
 
 }
 

@@ -34,20 +34,17 @@ static size_t page_count_padded(size_t size) {
 
 void page_init() {
 
-    printf("Initializing page allocator...\n");
+    printf("[    ] Page allocator init...");
 
     heap_size = &mem_heap_end - &mem_heap;
-    printf("Heap size: %d (%d Mio)\n", heap_size, heap_size / 1048576);
 
     // We split memory into blocks of 4K.
     page_count = heap_size / PAGE_SIZE;
-    printf("Page count: %d (x %d)\n", page_count, PAGE_SIZE);
 
     // We use blocks where each bit indicates if a the corresponding
     // block is free, we can fit 8 blocks into one byte, so 
     // 8 * PAGE_SIZE in a single page.
     meta_page_count = page_count_padded(page_count);
-    printf("Meta page count: %d\n", meta_page_count);
 
     // Clear meta pages.
     memset(&mem_heap, 0, meta_page_count * PAGE_SIZE);
@@ -56,6 +53,12 @@ void page_init() {
     for (size_t i = 0; i < meta_page_count; i++) {
         page_set_allocated(i, true);
     }
+
+    printf("\r[ OK ] Page allocator ready.        \n");
+    printf("       heap: %d Mio, pages: %d, meta pages: %d\n", 
+        heap_size / 1048576,
+        page_count,
+        meta_page_count);
 
 }
 

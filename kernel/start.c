@@ -9,20 +9,22 @@
 #include "cga.h"
 #include "cpu.h"
 #include "pit.h"
-#include "cmos.h"
+#include "ps2.h"
 
 #include "stdio.h"
 
 
 void kernel_start(void) {
 
-	printf("\fKernel starting...\n");
+	printf("\f[ .. ] Kernel starting...\n");
 	page_init();
 	pit_init();
+	ps2_init();
 	keyboard_init();
 	syscall_init();
+	printf("[ OK ] Kernel ready.\n");
 
-	printf("Starting user program...\n");
+	printf("\n\n\n");
 
 	process_idle(user_start, 512, NULL);
 

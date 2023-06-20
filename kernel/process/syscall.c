@@ -64,6 +64,7 @@ struct syscall_context *syscall_context = NULL;
 void syscall_handler(void);
 
 void syscall_init(void) {
-    printf("Initializing syscall...\n");
+    printf("[    ] System calls init...");
     idt_interrupt_gate(SYSCALL_INTERRUPT, (uint32_t) syscall_handler, 3);
+    printf("\r[ OK ] System calls ready: %d syscalls\n", SYSCALL_COUNT);
 }

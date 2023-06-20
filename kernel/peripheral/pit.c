@@ -44,11 +44,13 @@ static void pit_interrupt_handler(void) {
 
 void pit_init(void) {
 
-    printf("Initializing PIT...\n");
+    printf("[    ] PIT init...");
 
     pit_set_frequency();
     irq_set_handler(IRQ_PIT, pit_interrupt_handler);
     irq_mask(IRQ_PIT, false);
+
+    printf("\r[ OK ] PIT ready.   \n");
 
 }
 
