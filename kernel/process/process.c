@@ -197,8 +197,9 @@ static void process_internal_kill(struct process *process, int code, bool wake_p
         }
     }
 
-    // TODO: If parent state is ZOMBIE, or is null, just free the 
-    // process because it will never be waited for.
+    // Note that we'll never enter this function if the parent state
+    // is zombie, because any killed process sees its children
+    // instantly killed before the parent will become ZOMBIE.
 
     if (process->state == PROCESS_SCHED_ACTIVE || process->state == PROCESS_SCHED_AVAILABLE) {
 
@@ -220,6 +221,9 @@ static void process_internal_kill(struct process *process, int code, bool wake_p
     } else if (process->state == PROCESS_WAIT_CONS_READ) {
         // If the process is waiting for a console read, remove it.
         process_cons_read_kill_process(process);
+    } else if (process->state == PROCESS_WAIT_CHILD) {
+        // Process is waiting for a child, we do nothing because it
+        // is not in any linked list.
     } else {
         panic("process_internal_kill(...): unsupported state when killing: %d\n", process->state);
     }

@@ -22,8 +22,7 @@ void kernel_start(void) {
 	ps2_init();
 	keyboard_init();
 	syscall_init();
-	printf("[ \aaOK\ar ] Kernel ready\n");
-	
+	printf("[ \aaOK\ar ] Kernel ready\n\n");
 	cons_start();
 
 	process_idle(user_start, 512, NULL);

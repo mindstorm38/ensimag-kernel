@@ -16,6 +16,11 @@
 #define KERNEL_STACK_SIZE 512
 
 
+// TODO: May be a good idea to have a more generic wait support, with
+// generic wait but with different peripherals behind. Like time and
+// console read for exemple. But it's a bit too complicated for now.
+
+
 struct process;
 struct process_queue;
 
