@@ -3,11 +3,11 @@
 
 #include "internals.h"
 #include "interrupt.h"
+#include "keyboard.h"
 #include "process.h"
 #include "syscall.h"
 #include "pit.h"
 #include "cga.h"
-#include <stdint.h>
 
 
 /// Function wrapper to check access rights to pointers.
@@ -64,7 +64,11 @@ struct syscall_context *syscall_context = NULL;
 void syscall_handler(void);
 
 void syscall_init(void) {
+
     printf("[    ] System calls init...");
+    
     idt_interrupt_gate(SYSCALL_INTERRUPT, (uint32_t) syscall_handler, 3);
+
     printf("\r[ \aaOK\ar ] System calls ready: %d syscalls\n", SYSCALL_COUNT);
+
 }
