@@ -8,6 +8,8 @@
 #include "stdint.h"
 
 #include "ensimag.h"
+#include "syscall_shared.h"
+#include <stddef.h>
 
 
 int start(int (*pt_func)(void *), unsigned long ssize, int prio, const char *name, void *arg) {
@@ -86,4 +88,12 @@ unsigned long current_clock() {
 
 void cons_write(const char *str, long size) {
     syscall2(SC_CONSOLE_WRITE, (size_t) str, size);
+}
+
+int cons_read(char *string, unsigned long length) {
+    return syscall2(SC_CONSOLE_READ, (size_t) string, (size_t) length);
+}
+
+void cons_echo(int on) {
+    syscall1(SC_CONSOLE_ECHO, on);
 }

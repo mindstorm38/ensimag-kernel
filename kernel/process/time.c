@@ -14,8 +14,10 @@ void process_time_queue_add(struct process *process) {
     uint32_t target_clock = process->wait_time.target_clock;
 
     // Here we insert the process in the right order. Our linked list
-    // is ordered by 
+    // is ordered by target clock time.
 
+    // TODO: Order by process priority?
+    
     struct process **process_ptr = &clock_wait_head;
     while (*process_ptr != NULL) {
         if (target_clock <= (*process_ptr)->wait_time.target_clock) {

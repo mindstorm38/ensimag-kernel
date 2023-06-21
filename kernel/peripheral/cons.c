@@ -5,10 +5,11 @@
 #include "stdio.h"
 
 #include "keyboard.h"
+#include "string.h"
+#include "memory.h"
 #include "cons.h"
 #include "cga.h"
-#include <stddef.h>
-#include <string.h>
+#include <stdio.h>
 
 
 // Variables related to writing a formatted character at particular
@@ -22,6 +23,8 @@ static bool waiting_format_code = false;
 #define ALL_BUFFER_CAP 2048
 static char all_buffer[ALL_BUFFER_CAP];
 static size_t all_buffer_len = 0;
+
+static cons_wake_t wake_func = NULL;
 
 #define LINE_BUFFER_CAP 1024
 static char line_buffer[LINE_BUFFER_CAP];
@@ -109,13 +112,13 @@ static void cons_echo_line_buffer(void) {
 
 }
 
-/// Flush the line buffer to the global buffer, available for process
-/// to read.
+/// Flush the line buffer to the global buffer.
 static void cons_flush_line_buffer(void) {
 
-    size_t copy_len = ALL_BUFFER_CAP - all_buffer_len;
-    if (copy_len > line_buffer_len - 1) {
-        copy_len = line_buffer_len - 1;
+    // -1 for one line break at the end of the line.
+    size_t copy_len = ALL_BUFFER_CAP - all_buffer_len - 1;
+    if (copy_len > line_buffer_len) {
+        copy_len = line_buffer_len;
     }
 
     memcpy(all_buffer + all_buffer_len, line_buffer, copy_len);
@@ -124,6 +127,12 @@ static void cons_flush_line_buffer(void) {
 
     line_buffer_len = 0;
     line_buffer_cursor = 0;
+
+    if (wake_func != NULL) {
+        cons_wake_t wake = wake_func;
+        wake_func = NULL;
+        wake();
+    }
 
 }
 
@@ -224,7 +233,8 @@ static void cons_key_handler(enum keyboard_key key, uint32_t scancode, enum keyb
 
         case K_ENTER:
             cons_flush_line_buffer();
-            cons_write("\n", 1);
+            if (echo_)
+                cons_write("\n", 1);
             break;
 
         default:
@@ -242,6 +252,10 @@ void cons_start(void) {
     keyboard_set_char_handler(cons_char_handler);
 }
 
+void cons_echo(bool echo) {
+    echo_ = echo;
+}
+
 void cons_write(const char *src, size_t len) {
 
     while (len > 0) {
@@ -257,14 +271,47 @@ void cons_write(const char *src, size_t len) {
 
 }
 
-void cons_echo(bool echo) {
-    echo_ = echo;
-}
+bool cons_try_read(char *dst, size_t *len_ptr, cons_wake_t wake) {
 
-size_t cons_read(char *dst, size_t len) {
-    (void) dst;
-    (void) len;
-    return 0;
+    size_t len = *len_ptr;
+
+    if (len == 0)
+        return true;
+
+    if (all_buffer_len == 0) {
+        if (wake != NULL)
+            wake_func = wake;
+        return false;
+    }
+
+    // printf("\nbuffer:");
+    // for (size_t i = 0; i < all_buffer_len; i++) {
+    //     printf(" %02X", all_buffer[i]);
+    // }
+    // printf("\n");
+    
+    // Copy each character one by one.
+    size_t read_len = 0;
+    while (read_len < len && read_len < all_buffer_len) {
+        char ch = all_buffer[read_len];
+        all_buffer_len--;
+        if (ch == '\n') {
+            // Real read length doesn't take line break into account.
+            *len_ptr = read_len;
+            read_len++;
+            break;
+        } else {
+            dst[read_len++] = ch;
+        }
+    }
+
+    // Remove the read part.
+    for (size_t j = 0; j < all_buffer_len; j++) {
+        all_buffer[j] = all_buffer[j + read_len];
+    }
+
+    return true;
+
 }
 
 /// This function is an alias for 'cons_write', used by given 

@@ -9,6 +9,7 @@
 #include "syscall.h"
 #include "pit.h"
 #include "cga.h"
+#include <stddef.h>
 
 
 /// Function wrapper to check access rights to pointers.
@@ -29,6 +30,15 @@ static void console_write(const char *src, int32_t len) {
         cons_write(src, len);
     }
 }
+
+static size_t console_read(char *dst, size_t len) {
+    if (process_check_user_ptr(dst)) {
+        return process_wait_cons_read(dst, len);
+    } else {
+        return 0;
+    }
+}
+
 
 
 /// Type alias for a syscall function handler.
@@ -54,7 +64,7 @@ syscall_handler_t syscall_handlers[SYSCALL_COUNT] = {
     [SC_CLOCK_SETTINGS]         = clock_settings,
     [SC_CLOCK_GET]              = clock_get,
     [SC_CONSOLE_WRITE]          = console_write,
-    [SC_CONSOLE_READ]           = NULL,
+    [SC_CONSOLE_READ]           = console_read,
     [SC_CONSOLE_ECHO]           = cons_echo,
 };
 

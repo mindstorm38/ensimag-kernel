@@ -217,6 +217,9 @@ static void process_internal_kill(struct process *process, int code, bool wake_p
     } else if (process->state == PROCESS_WAIT_QUEUE) {
         // If the process is waiting queue, remove it from its queue.
         process_queue_kill_process(process);
+    } else if (process->state == PROCESS_WAIT_CONS_READ) {
+        // If the process is waiting for a console read, remove it.
+        process_cons_read_kill_process(process);
     } else {
         panic("process_internal_kill(...): unsupported state when killing: %d\n", process->state);
     }

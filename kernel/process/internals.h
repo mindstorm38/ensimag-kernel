@@ -82,6 +82,11 @@ struct process_state_wait_queue {
     int message;
 };
 
+struct process_state_wait_cons_read {
+    /// Next process in the wait cons read linked list.
+    struct process *next;
+};
+
 /// Zombie-specific state for process that are in `PROCESS_ZOMBIE`.
 struct process_state_zombie {
     /// Exit code of the process.
@@ -121,6 +126,8 @@ struct process {
         struct process_state_wait_time wait_time;
         /// Valid for `PROCESS_WAIT_QUEUE`.
         struct process_state_wait_queue wait_queue;
+        /// Valid for `PROCESS_WAIT_CONS_READ`.
+        struct process_state_wait_cons_read wait_cons_read;
         /// Valid for `PROCESS_ZOMBIE`.
         struct process_state_zombie zombie;
     };
@@ -237,7 +244,7 @@ void process_sched_pit_handler(uint32_t clock);
 /// Add the process to the clock queue, the process must be in the
 /// `PROCESS_WAIT_TIME` state with corresponding data.
 void process_time_queue_add(struct process *process);
-/// Remove the process from the clock queue. The process musst be in 
+/// Remove the process from the clock queue. The process must be in 
 /// the `PROCESS_WAIT_TIME` state with corresponding data.
 void process_time_queue_remove(struct process *process);
 /// Internal function that handle pit interrupts for clock. It will
@@ -250,6 +257,10 @@ void process_queue_set_priority(struct process *process, int new_priority);
 /// Kill a process that is waiting for queue. The process must be in
 /// `PROCESS_WAIT_QUEUE` state.
 void process_queue_kill_process(struct process *process);
+
+/// Kill a process that is waiting for a console read. The process 
+/// must be in `PROCESS_WAIT_CONS_READ` state.
+void process_cons_read_kill_process(struct process *process);
 
 /// Internal function to debug print a process.
 void process_debug(struct process *process);
