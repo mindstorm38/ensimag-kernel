@@ -13,17 +13,17 @@ static struct process *cons_read_wait_head = NULL;
 /// can be read. We wake all process so they will 
 static void process_wait_cons_read_wake(void) {
 
-    struct process *process = cons_read_wait_head;
+    struct process *process_it = cons_read_wait_head;
     struct process *highest_process = NULL;
 
-    while (process != NULL) {
-        if (highest_process == NULL || highest_process->priority < process->priority) {
-            highest_process = process;
+    while (process_it != NULL) {
+        if (highest_process == NULL || highest_process->priority < process_it->priority) {
+            highest_process = process_it;
         }
-        struct process *next_process = process->wait_cons_read.next;
-        process->state = PROCESS_SCHED_AVAILABLE;
-        process_sched_ring_insert(process);
-        process = next_process;
+        struct process *next_process = process_it->wait_cons_read.next;
+        process_it->state = PROCESS_SCHED_AVAILABLE;
+        process_sched_ring_insert(process_it);
+        process_it = next_process;
     }
 
     cons_read_wait_head = NULL;
@@ -60,5 +60,15 @@ size_t process_wait_cons_read(char *dst, size_t len) {
 }
 
 void process_cons_read_kill_process(struct process *process) {
-    (void) process; // TODO:
+
+    // Remove the process from its wait list.
+    struct process **process_it = &cons_read_wait_head;
+    while (*process_it != NULL) {
+        if (*process_it == process) {
+            *process_it = process->wait_cons_read.next;
+            break;
+        }
+        process_it = &(*process_it)->wait_cons_read.next;
+    }
+
 }
