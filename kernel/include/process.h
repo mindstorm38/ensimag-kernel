@@ -4,6 +4,7 @@
 #include "stdbool.h"
 #include "stdint.h"
 #include "stddef.h"
+#include <stddef.h>
 
 #define PROCESS_NAME_MAX_SIZE 128
 #define PROCESS_STACK_SIZE 512
@@ -44,6 +45,9 @@ int process_kill(pid_t pid);
 
 /// Pause the process for given number of clock cycles.
 void process_wait_clock(uint32_t clock);
+
+/// Pause the current process waiting for reading the console.
+size_t process_wait_cons_read(char *dst, size_t len);
 
 /// Create a message queue with the given capacity of messages.
 qid_t process_queue_create(size_t capacity);

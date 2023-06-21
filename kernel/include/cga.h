@@ -2,6 +2,7 @@
 #define __CGA_H__
 
 #include "stdint.h"
+#include "stddef.h"
 
 #define CGA_COLS 80
 #define CGA_ROWS 25
@@ -27,8 +28,19 @@ enum cga_color {
     CGA_WHITE = 15
 };
 
-void cga_write_bytes(const char *s, int32_t len);
-void cga_fg_color(enum cga_color color);
-void cga_bg_color(enum cga_color color);
+/// Get a character and its color at the given position.
+void cga_char(uint32_t line, uint32_t column, char *ch, enum cga_color *fg, enum cga_color *bg);
+/// Write the given character at the given position with given color.
+void cga_set_char(uint32_t line, uint32_t column, char ch, enum cga_color fg, enum cga_color bg);
+
+/// Get the cursor position.
+void cga_cursor(uint32_t *line, uint32_t *column);
+/// Set the cursor position.
+void cga_set_cursor(uint32_t line, uint32_t column);
+
+/// Clear the screen.
+void cga_clear(void);
+/// Scroll down the screen.
+void cga_scroll_down(void);
 
 #endif

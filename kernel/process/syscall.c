@@ -1,3 +1,4 @@
+#include "cons.h"
 #include "stddef.h"
 #include "stdio.h"
 
@@ -23,9 +24,9 @@ static uint32_t clock_get() {
 }
 
 /// Function wrapper for cons write to check access rights.
-static void console_write(const char *s, int32_t len) {
-    if (process_check_user_ptr(s)) {
-        cga_write_bytes(s, len);
+static void console_write(const char *src, int32_t len) {
+    if (process_check_user_ptr(src)) {
+        cons_write(src, len);
     }
 }
 
@@ -54,7 +55,7 @@ syscall_handler_t syscall_handlers[SYSCALL_COUNT] = {
     [SC_CLOCK_GET]              = clock_get,
     [SC_CONSOLE_WRITE]          = console_write,
     [SC_CONSOLE_READ]           = NULL,
-    [SC_CONSOLE_ENABLE]         = NULL,
+    [SC_CONSOLE_ECHO]           = cons_echo,
 };
 
 struct syscall_context *syscall_context = NULL;
@@ -64,11 +65,7 @@ struct syscall_context *syscall_context = NULL;
 void syscall_handler(void);
 
 void syscall_init(void) {
-
     printf("[    ] System calls init...");
-    
     idt_interrupt_gate(SYSCALL_INTERRUPT, (uint32_t) syscall_handler, 3);
-
     printf("\r[ \aaOK\ar ] System calls ready: %d syscalls\n", SYSCALL_COUNT);
-
 }

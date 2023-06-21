@@ -37,7 +37,7 @@
 // Console control
 #define SC_CONSOLE_WRITE            17
 #define SC_CONSOLE_READ             18
-#define SC_CONSOLE_ENABLE           19
+#define SC_CONSOLE_ECHO             19
 
 // Max number of syscalls
 #define SYSCALL_COUNT               20

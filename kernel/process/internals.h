@@ -33,8 +33,8 @@ enum process_state {
     PROCESS_WAIT_TIME,
     /// The process is waiting to read/write from/to a process queue.
     PROCESS_WAIT_QUEUE,
-    // PROCESS_WAIT_SEMAPHORE,
-    // PROCESS_WAIT_IO,
+    /// The process is waiting for some IO to wake it up.
+    PROCESS_WAIT_CONS_READ,
     /// The process is dead and is waiting termination by its parent,
     /// if the parent is itself a zombie, the process is just freed.
     PROCESS_ZOMBIE,

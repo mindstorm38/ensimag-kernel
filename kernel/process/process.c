@@ -496,6 +496,7 @@ void process_wait_clock(uint32_t clock) {
 
 }
 
+
 void process_debug(struct process *process) {
 
     printf("== [ PROCESS %d ] ==\n", process->pid);

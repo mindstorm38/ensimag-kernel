@@ -6,7 +6,7 @@
 #include "process.h"
 #include "memory.h"
 #include "start.h"
-#include "cga.h"
+#include "cons.h"
 #include "cpu.h"
 #include "pit.h"
 #include "ps2.h"
@@ -23,8 +23,8 @@ void kernel_start(void) {
 	keyboard_init();
 	syscall_init();
 	printf("[ \aaOK\ar ] Kernel ready\n");
-
-	printf("\n\n\n");
+	
+	cons_start();
 
 	process_idle(user_start, 512, NULL);
 

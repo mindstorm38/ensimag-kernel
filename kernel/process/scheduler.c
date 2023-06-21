@@ -117,8 +117,7 @@ struct process *process_sched_ring_find(int max_priority) {
     }
 
     // Should not happen (because we have idle process at prio 0).
-    // TODO: panic?
-    return NULL;
+    panic("process_sched_ring_find(%d): failed to find a process, this should not happen because idle should be present\n", max_priority);
 
 }
 
