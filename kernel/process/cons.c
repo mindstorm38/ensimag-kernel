@@ -21,7 +21,7 @@ static void process_wait_cons_read_wake(void) {
             highest_process = process_it;
         }
         struct process *next_process = process_it->wait_cons_read.next;
-        process_it->state = PROCESS_SCHED_AVAILABLE;
+        process_it->state = PROCESS_SCHED;
         process_sched_ring_insert(process_it);
         process_it = next_process;
     }
@@ -29,7 +29,6 @@ static void process_wait_cons_read_wake(void) {
     cons_read_wait_head = NULL;
 
     if (highest_process != NULL && highest_process->priority > process_active->priority) {
-        process_active->state = PROCESS_SCHED_AVAILABLE;
         process_sched_advance(highest_process);
     }
 

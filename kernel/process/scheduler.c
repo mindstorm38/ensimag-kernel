@@ -18,8 +18,8 @@ struct process *process_active = NULL;
 
 void process_sched_ring_insert(struct process *process) {
 
-    if (process->state != PROCESS_SCHED_ACTIVE && process->state != PROCESS_SCHED_AVAILABLE) {
-        panic("process_sched_ring_insert(...): process->state must be SCHED_*");
+    if (process->state != PROCESS_SCHED) {
+        panic("process_sched_ring_insert(...): process->state must be SCHED");
     }
 
 #if PROCESS_DEBUG
@@ -59,8 +59,8 @@ struct process *process_sched_ring_remove(struct process *process) {
     printf("[%s] process_sched_ring_remove(%s)\n", process_active->name, process->name);
 #endif
 
-    if (process->state != PROCESS_SCHED_ACTIVE && process->state != PROCESS_SCHED_AVAILABLE) {
-        panic("process_sched_ring_remove(...): process->state must be SCHED_*");
+    if (process->state != PROCESS_SCHED) {
+        panic("process_sched_ring_remove(...): process->state must be SCHED");
     }
 
     // Remove the running process from its own ring.
@@ -131,21 +131,20 @@ void process_sched_advance(struct process *next_process) {
     }
 #endif
 
-    struct process *prev_process = process_active;
+    // if (prev_process->state == PROCESS_SCHED_ACTIVE) {
+    //     panic("process_sched_advance(...): process_active->state cannot be SCHED_ACTIVE\n");
+    // }
 
-    if (prev_process->state == PROCESS_SCHED_ACTIVE) {
-        panic("process_sched_advance(...): process_active->state cannot be SCHED_ACTIVE\n");
-    }
-
-    // The previous process is still active, we can search for the next process.
-    if (next_process == NULL && prev_process->state == PROCESS_SCHED_AVAILABLE) {
-        next_process = prev_process->sched.next;
+    // The active process should remain scheduled, we can search for
+    // the next process in its ring.
+    if (next_process == NULL && process_active->state == PROCESS_SCHED) {
+        next_process = process_active->sched.next;
     }
 
     // Still no process? Go lower in schedule ring.
     if (next_process == NULL) {
         
-        next_process = process_sched_ring_find(prev_process->priority);
+        next_process = process_sched_ring_find(process_active->priority);
 
 #if PROCESS_DEBUG
         printf("[%s] process_sched_advance(...): ring find: %s\n", process_active->name, next_process->name);
@@ -153,38 +152,23 @@ void process_sched_advance(struct process *next_process) {
 
     }
 
-    next_process->state = PROCESS_SCHED_ACTIVE;
+    next_process->state = PROCESS_SCHED;
 
     // Do not context switch if the same process loops over.
-    if (prev_process == next_process) {
+    if (process_active == next_process) {
         // Do nothing
     } else {
-
-        // // Just a check to panic if the process overflow its stack.
-        // if (prev_process->context.esp < (uint32_t) prev_process->stack) {
-        //     panic("process_sched_advance(...): process '%s' overflow its stack (%d octets below)\n", 
-        //         prev_process->name, (uint32_t) prev_process->stack - prev_process->context.esp);
-        // }
-
-        // if (prev_process->pid == 0) {
-        //     process_debug(prev_process);
-        // }
-
-        // if (next_process->pid == 0) {
-        //     process_debug(next_process);
-        // }
-
+        struct process *prev_process = process_active;
         process_active = next_process;
         process_context_switch(prev_process, next_process);
-        
     }
 
 }
 
 void process_sched_set_priority(struct process *process, int new_priority) {
 
-    if (process->state != PROCESS_SCHED_ACTIVE && process->state != PROCESS_SCHED_AVAILABLE) {
-        panic("process_sched_set_priority(...): processs->state is not SCHED_*\n");
+    if (process->state != PROCESS_SCHED) {
+        panic("process_sched_set_priority(...): processs->state is not SCHED\n");
     }
 
     // Remove the process from its current ring.
@@ -236,7 +220,6 @@ void process_sched_set_priority(struct process *process, int new_priority) {
     }
 
     if (next_process != NULL && next_process != process) {
-        process_active->state = PROCESS_SCHED_AVAILABLE;
         process_sched_advance(next_process);
     }
 
@@ -247,7 +230,6 @@ void process_sched_pit_handler(uint32_t clock) {
     (void) clock;
 
     // Interruptions are disabled here, don't need to cli.    
-    process_active->state = PROCESS_SCHED_AVAILABLE;
     process_sched_advance(NULL);
 
 }

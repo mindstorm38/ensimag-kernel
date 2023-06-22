@@ -27,7 +27,7 @@ static size_t overall_count = 0;
 /// initialize remaining fields (parent/child/sibling/state).
 /// 
 /// Interrupts must be disabled before calling this function.
-static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg, enum process_state state) {
+static struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg) {
 
     // No more than 1000 concurrent process for now.
     if (overall_count >= 1000)
@@ -103,7 +103,7 @@ static struct process *process_alloc(process_entry_t entry, size_t stack_size, i
 
     // Priority and scheduler ring.
     process->priority = priority;
-    process->state = state;
+    process->state = PROCESS_SCHED;
     process_sched_ring_insert(process);
     
     // Increment total process count.
@@ -182,7 +182,7 @@ static void process_internal_kill(struct process *process, int code, bool wake_p
             if (parent_wait_pid < 0 || parent_wait_pid == process->pid) {
 
                 // We need to reactivate the parent.
-                parent->state = PROCESS_SCHED_AVAILABLE;
+                parent->state = PROCESS_SCHED;
                 parent->sched.new_zombie_child = process;
                 // Re-insert the parent in its ring.
                 process_sched_ring_insert(parent);
@@ -201,7 +201,7 @@ static void process_internal_kill(struct process *process, int code, bool wake_p
     // is zombie, because any killed process sees its children
     // instantly killed before the parent will become ZOMBIE.
 
-    if (process->state == PROCESS_SCHED_ACTIVE || process->state == PROCESS_SCHED_AVAILABLE) {
+    if (process->state == PROCESS_SCHED) {
 
         // If the process was active or available, remove it from scheduler.
         struct process *next_ring_process = process_sched_ring_remove(process);
@@ -262,7 +262,7 @@ static void process_pit_handler(uint32_t clock) {
 
 void process_idle(process_entry_t entry, size_t stack_size, void *arg) {
     
-    process_active = process_alloc(entry, stack_size, 0, "idle", arg, PROCESS_SCHED_ACTIVE);
+    process_active = process_alloc(entry, stack_size, 0, "idle", arg);
 
     // No parent/child.
     process_active->parent = NULL;
@@ -289,7 +289,7 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     if (!process_check_user_ptr(name))
         return -1;
     
-    struct process *process = process_alloc(entry, stack_size, priority, name, arg, PROCESS_SCHED_AVAILABLE);
+    struct process *process = process_alloc(entry, stack_size, priority, name, arg);
     if (process == NULL)
         return -1; // Allocation error.
     
@@ -310,7 +310,6 @@ pid_t process_start(process_entry_t entry, size_t stack_size, int priority, cons
     // interrupt the execution of the current process and switch to
     // this scheduler ring.
     if (process->priority > process_active->priority) {
-        process_active->state = PROCESS_SCHED_AVAILABLE;
         process_sched_advance(process);
     }
 
@@ -371,7 +370,7 @@ int process_set_priority(pid_t pid, int priority) {
     if (priority == prev_priority)
         return prev_priority; // No change to do.
 
-    if (process->state == PROCESS_SCHED_ACTIVE || process->state == PROCESS_SCHED_AVAILABLE) {
+    if (process->state == PROCESS_SCHED) {
         // The process is scheduled, call the scheduler.
         process_sched_set_priority(process, priority);
     } else if (process->state == PROCESS_WAIT_QUEUE) {
@@ -481,11 +480,9 @@ void process_wait_clock(uint32_t clock) {
 #endif
 
     if (clock <= pit_clock_get()) {
-
         // The target clock is already passed, just advance.
-        process_active->state = PROCESS_SCHED_AVAILABLE;
+        // FIXME: Do nothing? Or act like a 'yield'.
         process_sched_advance(NULL);
-
     } else {
         
         struct process *next_process = process_sched_ring_remove(process_active);

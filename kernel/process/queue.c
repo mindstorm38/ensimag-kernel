@@ -118,7 +118,7 @@ static void process_queue_resume_reset(struct process_queue *queue) {
         // Save the next process here because state is changed.
         struct process *next_process = wait_process->wait_queue.next;
 
-        wait_process->state = PROCESS_SCHED_AVAILABLE;
+        wait_process->state = PROCESS_SCHED;
         wait_process->sched.wait_queue_reset = true;
         process_sched_ring_insert(wait_process);
 
@@ -131,7 +131,6 @@ static void process_queue_resume_reset(struct process_queue *queue) {
     // The highest priority process has greater priority than running
     // process? Schedule it.
     if (wake_process != NULL && wake_process->priority > process_active->priority) {
-        process_active->state = PROCESS_SCHED_AVAILABLE;
         process_sched_advance(wake_process);
     }
 
@@ -247,14 +246,13 @@ int process_queue_send(qid_t qid, int message) {
             struct process *next_process = process_queue_pop_next(queue);
             if (next_process != NULL) {
 
-                next_process->state = PROCESS_SCHED_AVAILABLE;
+                next_process->state = PROCESS_SCHED;
                 next_process->sched.wait_queue_reset = false;
                 next_process->sched.wait_queue_message = message;
 
                 process_sched_ring_insert(next_process);
 
                 if (next_process->priority > process_active->priority) {
-                    process_active->state = PROCESS_SCHED_AVAILABLE;
                     process_sched_advance(next_process);
                 }
 
@@ -315,14 +313,13 @@ int process_queue_receive(qid_t qid, int *message) {
 
             process_queue_raw_write(queue, next_process->wait_queue.message);
 
-            next_process->state = PROCESS_SCHED_AVAILABLE;
+            next_process->state = PROCESS_SCHED;
             next_process->sched.wait_queue_reset = false;
             next_process->sched.wait_queue_message = -1;
 
             process_sched_ring_insert(next_process);
 
             if (next_process->priority > process_active->priority) {
-                process_active->state = PROCESS_SCHED_AVAILABLE;
                 process_sched_advance(next_process);
             }
 

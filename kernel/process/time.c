@@ -72,7 +72,7 @@ void process_time_pit_handler(uint32_t clock) {
         struct process *next_process = process->wait_time.next;
 
         // Re-schedule the process that reached target clock.
-        process->state = PROCESS_SCHED_AVAILABLE;
+        process->state = PROCESS_SCHED;
         process_sched_ring_insert(process);
 
         process = next_process;
@@ -85,7 +85,6 @@ void process_time_pit_handler(uint32_t clock) {
     // If the new highest priority process has greater priority than
     // currently running process, we schedule our new process.
     if (highest_process != NULL && highest_process->priority > process_active->priority) {
-        process_active->state = PROCESS_SCHED_AVAILABLE;
         process_sched_advance(highest_process);
     }
 

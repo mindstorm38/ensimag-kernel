@@ -25,12 +25,10 @@ struct process_queue;
 
 /// States that a process can take, used for scheduling.
 enum process_state {
-    /// The process is the currently executed one, it must be in the
-    /// scheduler rings of its priority.
-    PROCESS_SCHED_ACTIVE,
-    /// The process is in the scheduler ring and is waiting to be
-    /// executed.
-    PROCESS_SCHED_AVAILABLE,
+    /// The process is the currently in the scheduler rings. It is
+    /// either the active one or waiting. The active one can be known
+    /// with the 'process_active' global variable.
+    PROCESS_SCHED,
     /// The process is waiting for termination of one of its children.
     PROCESS_WAIT_CHILD,
     /// The process is waiting for reaching a target clock count.
@@ -224,17 +222,16 @@ void process_sched_ring_insert(struct process *process);
 /// If the process is not in a ring, nothing is done.
 struct process *process_sched_ring_remove(struct process *process);
 /// Internal function used to find a non-null schedule ring up to
-/// and excluding the given priority. This should not return null
-/// since at least ring 0 should contain idle process.
+/// and excluding the given priority.
+///
+/// This function panic if no process is found, because at least idle
+/// should be found.
 struct process *process_sched_ring_find(int max_priority);
-/// The active process must no longer be in ACTIVE state when calling 
-/// this function.
+/// The active process can be in any state. But if the active process 
+/// is still in SCHED state then the next process of the ring is used
+/// (only if next process isn't forced).
 ///
-/// If the active process is still in SCHED_AVAILABLE state then the
-/// next process of the ring is used (only if next process isn't 
-/// forced).
-///
-/// The next process state is set to ACTIVE.
+/// The next process is set to the active one.
 void process_sched_advance(struct process *next_process);
 /// Change the scheduling priority of the given process, this function
 /// automatically handles context switch if the next priority is

@@ -14,6 +14,7 @@
 static void builtin_help(size_t argc, const char **args);
 static void builtin_ps(size_t argc, const char **args);
 static void builtin_exit(size_t argc, const char **args);
+static void builtin_test(size_t argc, const char **args);
 
 struct builtin {
     const char *name;
@@ -36,6 +37,11 @@ struct builtin builtins[] = {
         "exit",
         "Shutdown the kernel.",
         builtin_exit
+    },
+    {
+        "test",
+        "Run internal test suite.",
+        builtin_test
     },
     { 0 }
 };
@@ -120,10 +126,8 @@ static void builtin_help(size_t argc, const char **args) {
 }
 
 static void builtin_ps(size_t argc, const char **args) {
-
     (void) argc;
     (void) args;
-
 }
 
 static void builtin_exit(size_t argc, const char **args) {
@@ -131,4 +135,29 @@ static void builtin_exit(size_t argc, const char **args) {
     (void) args;
     cons_echo(0);
     running = false;
+}
+
+
+int test_run(int n);
+
+static int test_wrapper(void *arg) {
+	(void) arg;
+	for (int i = 1; i <= 20; i++) {
+		printf("== RUNNING TEST %d ==\n", i);
+		int ret = test_run(i);
+		if (ret != 0)
+			return ret;
+	}
+	printf("== TESTS COMPLETE ==\n");
+	return 0;
+}
+
+static void builtin_test(size_t argc, const char **args) {
+
+    (void) argc;
+    (void) args;
+
+    int pid = start(test_wrapper, 4096, 128, "test_wrapper", NULL);
+    waitpid(pid, NULL);
+
 }
