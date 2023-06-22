@@ -7,9 +7,8 @@
 #include "syscall.h"
 #include "stdint.h"
 
-#include "ensimag.h"
 #include "syscall_shared.h"
-#include <stddef.h>
+#include "ensimag.h"
 
 
 int start(int (*pt_func)(void *), unsigned long ssize, int prio, const char *name, void *arg) {
@@ -97,7 +96,6 @@ int cons_read(char *string, unsigned long length) {
 void cons_echo(int on) {
     syscall1(SC_CONSOLE_ECHO, on);
 }
-
 
 void console_putbytes(const char *s, int len) {
     cons_write(s, len);

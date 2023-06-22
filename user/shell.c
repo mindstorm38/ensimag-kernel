@@ -35,7 +35,7 @@ struct builtin builtins[] = {
     {
         "exit",
         "Shutdown the kernel.",
-        builtin_exit,
+        builtin_exit
     },
     { 0 }
 };

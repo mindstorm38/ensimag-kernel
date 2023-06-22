@@ -9,7 +9,8 @@
 #include "syscall.h"
 #include "pit.h"
 #include "cga.h"
-#include <stddef.h>
+
+#include "../boot/processor_structs.h"
 
 
 /// Function wrapper to check access rights to pointers.
@@ -38,7 +39,6 @@ static size_t console_read(char *dst, size_t len) {
         return 0;
     }
 }
-
 
 
 /// Type alias for a syscall function handler.

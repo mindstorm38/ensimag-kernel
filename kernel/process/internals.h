@@ -5,7 +5,6 @@
 #include "stdint.h"
 
 #include "process.h"
-#include "arch.h"
 
 
 // Note that enabling debug may fail some kill(...) or exit(...) test
