@@ -41,15 +41,15 @@ pid_t process_wait(pid_t pid, int *exit_code);
 /// Kill the given process by pid.
 int process_kill(pid_t pid);
 
-/// Pause the process for given number of clock cycles.
-void process_wait_clock(uint32_t clock);
-
 /// Get name of the current process.
 const char *process_name(pid_t pid);
 /// Get children of a process. Setting all PIDs in the given array 
 /// with at most 'count' PIDs. The total children count is also 
 /// returned, which may exceed the given count.
 size_t process_children(pid_t pid, pid_t *children_pids, size_t count);
+
+/// Pause the process for given number of clock cycles.
+void process_wait_clock(uint32_t clock);
 
 /// Pause the current process waiting for reading the console.
 size_t process_wait_cons_read(char *dst, size_t len);

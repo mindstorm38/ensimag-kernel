@@ -10,9 +10,9 @@ int getprio(int pid);
 int chprio(int pid, int newprio);
 int waitpid(int pid, int *retval);
 int kill(int pid);
-void wait_clock(unsigned long clock);
+const char *getname(int pid);
 
-const char *getname(void);
+void wait_clock(unsigned long clock);
 
 int pcreate(int count);
 int pdelete(int fid);

@@ -325,6 +325,33 @@ int process_kill(pid_t pid) {
 
 }
 
+const char *process_name(pid_t pid) {
+    struct process *process = process_from_pid(pid);
+    return process == NULL ? NULL : process->name;
+}
+
+size_t process_children(pid_t pid, pid_t *children_pids, size_t count) {
+
+    struct process *process = process_from_pid(pid);
+    if (process == NULL)
+        return 0;
+    
+    size_t total_count = 0;
+
+    struct process *children = process->child;
+    while (children != NULL) {
+        if (count > 0) {
+            children_pids[--count] = children->pid;
+        }
+        total_count++;
+        children = children->sibling;
+    }
+
+    return total_count;
+
+}
+
+
 void process_wait_clock(uint32_t clock) {
 
 #if PROCESS_DEBUG
@@ -349,32 +376,6 @@ void process_wait_clock(uint32_t clock) {
         process_sched_advance(next_process);
 
     }
-
-}
-
-const char *process_name(pid_t pid) {
-    struct process *process = process_from_pid(pid);
-    return process == NULL ? NULL : process->name;
-}
-
-size_t process_children(pid_t pid, pid_t *children_pids, size_t count) {
-
-    struct process *process = process_from_pid(pid);
-    if (process == NULL)
-        return 0;
-    
-    size_t total_count = 0;
-
-    struct process *children = process->child;
-    while (children != NULL) {
-        if (count > 0) {
-            children_pids[--count] = children->pid;
-        }
-        total_count++;
-        children = children->sibling;
-    }
-
-    return total_count;
 
 }
 

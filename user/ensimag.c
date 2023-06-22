@@ -48,12 +48,12 @@ int kill(int pid) {
     return syscall1(SC_PROCESS_KILL, pid);
 }
 
-void wait_clock(unsigned long clock) {
-    syscall1(SC_PROCESS_WAIT_CLOCK, clock);
+const char *getname(int pid) {
+    return (const char *) syscall1(SC_PROCESS_NAME, pid);
 }
 
-const char *getname(void) {
-    return (const char *) syscall0(SC_PROCESS_NAME);
+void wait_clock(unsigned long clock) {
+    syscall1(SC_PROCESS_WAIT_CLOCK, clock);
 }
 
 int pcreate(int count) {
