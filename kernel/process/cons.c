@@ -34,7 +34,10 @@ static void process_wait_cons_read_wake(void) {
 
 }
 
-size_t process_wait_cons_read(char *dst, size_t len) {
+int process_wait_cons_read(char *dst, size_t len) {
+
+    if (dst != NULL && !process_check_user_ptr(dst))
+        return -1;
 
     if (len == 0)
         return 0;

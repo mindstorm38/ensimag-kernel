@@ -32,14 +32,6 @@ static void console_write(const char *src, int32_t len) {
     }
 }
 
-static size_t console_read(char *dst, size_t len) {
-    if (process_check_user_ptr(dst)) {
-        return process_wait_cons_read(dst, len);
-    } else {
-        return 0;
-    }
-}
-
 
 /// Type alias for a syscall function handler.
 typedef void *syscall_handler_t;
@@ -54,6 +46,7 @@ syscall_handler_t syscall_handlers[SYSCALL_COUNT] = {
     [SC_PROCESS_WAIT]           = process_wait,
     [SC_PROCESS_KILL]           = process_kill,
     [SC_PROCESS_NAME]           = process_name,
+    [SC_PROCESS_CHILDREN]       = process_children,
     [SC_PROCESS_WAIT_CLOCK]     = process_wait_clock,
     [SC_PROCESS_QUEUE_CREATE]   = process_queue_create,
     [SC_PROCESS_QUEUE_DELETE]   = process_queue_delete,
@@ -64,7 +57,7 @@ syscall_handler_t syscall_handlers[SYSCALL_COUNT] = {
     [SC_CLOCK_SETTINGS]         = clock_settings,
     [SC_CLOCK_GET]              = clock_get,
     [SC_CONSOLE_WRITE]          = console_write,
-    [SC_CONSOLE_READ]           = console_read,
+    [SC_CONSOLE_READ]           = process_wait_cons_read,
     [SC_CONSOLE_ECHO]           = cons_echo,
 };
 

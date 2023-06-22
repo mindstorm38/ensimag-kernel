@@ -88,8 +88,8 @@ struct process *process_alloc(process_entry_t entry, size_t stack_size, int prio
 
     process->kernel_esp = (uint32_t) kernel_stack_ptr;
 
-    // Initialize other fields
-    strcpy(process->name, name);
+    // Initialize other fields.
+    strncpy(process->name, name, PROCESS_NAME_CAP);
 
     // Priority and scheduler ring.
     process->priority = priority;

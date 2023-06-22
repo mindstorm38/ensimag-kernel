@@ -299,7 +299,7 @@ bool cons_try_read(char *dst, size_t *len, cons_wake_t wake) {
         char ch = all_buffer[read_len];
         if (ch == '\n') {
             read_eol = true;
-        } else {
+        } else if (dst != NULL) {
             dst[read_len] = ch;
         }
     }

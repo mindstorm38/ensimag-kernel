@@ -325,26 +325,47 @@ int process_kill(pid_t pid) {
 
 }
 
-const char *process_name(pid_t pid) {
-    struct process *process = process_from_pid(pid);
-    return process == NULL ? NULL : process->name;
-}
+int process_name(pid_t pid, char *dst, int count) {
 
-size_t process_children(pid_t pid, pid_t *children_pids, size_t count) {
+    if (dst != NULL && count < 0)
+        return -1;
 
     struct process *process = process_from_pid(pid);
     if (process == NULL)
-        return 0;
+        return -1;
+    
+    int name_len = strlen(process->name);
+    strncpy(dst, process->name, count <= name_len ? count : name_len);
+    
+    return name_len;
+
+}
+
+int process_children(pid_t pid, pid_t *children_pids, int count) {
+
+    if (children_pids != NULL && count < 0)
+        return -1;
+
+    if (children_pids != NULL && !process_check_user_ptr(children_pids))
+        return -1;
+
+    struct process *process = process_from_pid(pid);
+    if (process == NULL)
+        return -1;
     
     size_t total_count = 0;
 
     struct process *children = process->child;
     while (children != NULL) {
-        if (count > 0) {
-            children_pids[--count] = children->pid;
+
+        if (count > 0 && children_pids != NULL) {
+            children_pids[total_count] = children->pid;
+            count--;
         }
+
         total_count++;
         children = children->sibling;
+        
     }
 
     return total_count;

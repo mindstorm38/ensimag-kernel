@@ -10,7 +10,8 @@ int getprio(int pid);
 int chprio(int pid, int newprio);
 int waitpid(int pid, int *retval);
 int kill(int pid);
-const char *getname(int pid);
+int getname(int pid, char *dst, int count);
+int getchildren(int pid, int *children_pids, int count);
 
 void wait_clock(unsigned long clock);
 

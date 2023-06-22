@@ -151,13 +151,13 @@ static size_t process_queue_raw_read(struct process_queue *queue, int *message) 
     return queue->length--;
 }
 
-qid_t process_queue_create(size_t capacity) {
+qid_t process_queue_create(int capacity) {
 
 #if QUEUE_DEBUG
     printf("[%s] process_queue_create(%d)\n", process_active->name, capacity);
 #endif
 
-    if (capacity == 0 || id_pool_empty(queue_id_pool))
+    if (capacity <= 0 || id_pool_empty(queue_id_pool))
         return -1;
 
     size_t messages_alloc;

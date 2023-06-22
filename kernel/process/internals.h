@@ -152,7 +152,7 @@ struct process {
     /// Process id, its index in the internal process queue.
     pid_t pid;
     /// Name of the process.
-    char name[PROCESS_NAME_MAX_SIZE];
+    char name[PROCESS_NAME_CAP];
     /// Scheduling priority, from 0 to PROCESS_MAX_PRIORITY excluded.
     int priority;
 };

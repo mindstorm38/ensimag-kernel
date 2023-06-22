@@ -48,8 +48,12 @@ int kill(int pid) {
     return syscall1(SC_PROCESS_KILL, pid);
 }
 
-const char *getname(int pid) {
-    return (const char *) syscall1(SC_PROCESS_NAME, pid);
+int getname(int pid, char *dst, int count) {
+    return syscall3(SC_PROCESS_NAME, pid, (size_t) dst, count);
+}
+
+int getchildren(int pid, int *children_pids, int count) {
+    return syscall3(SC_PROCESS_CHILDREN, pid, (size_t) children_pids, count);
 }
 
 void wait_clock(unsigned long clock) {

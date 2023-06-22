@@ -6,11 +6,10 @@
 #include "stddef.h"
 #include <stddef.h>
 
-#define PROCESS_NAME_MAX_SIZE 128
-#define PROCESS_STACK_SIZE 512
-#define PROCESS_MAX_COUNT 2
+#define PROCESS_NAME_CAP        128
+#define PROCESS_STACK_SIZE      512
 
-#define PROCESS_MAX_PRIORITY 256
+#define PROCESS_MAX_PRIORITY    256
 
 
 typedef int pid_t;
@@ -41,21 +40,28 @@ pid_t process_wait(pid_t pid, int *exit_code);
 /// Kill the given process by pid.
 int process_kill(pid_t pid);
 
-/// Get name of the current process.
-const char *process_name(pid_t pid);
+/// Get name of the current process. The name will be put in the
+/// destination string if not null, the returned value is -1 if 
+/// process cannot be found, if found it'll be the process name's
+/// full length.
+int process_name(pid_t pid, char *dst, int count);
 /// Get children of a process. Setting all PIDs in the given array 
 /// with at most 'count' PIDs. The total children count is also 
-/// returned, which may exceed the given count.
-size_t process_children(pid_t pid, pid_t *children_pids, size_t count);
+/// returned, which may exceed the given count. If the children PIDs
+/// pointer is NULL, then the count value is ignored.
+///
+/// The function returns -1 if either the PID is invalid, the given
+/// children count is less than 0.
+int process_children(pid_t pid, pid_t *children_pids, int count);
 
 /// Pause the process for given number of clock cycles.
 void process_wait_clock(uint32_t clock);
 
 /// Pause the current process waiting for reading the console.
-size_t process_wait_cons_read(char *dst, size_t len);
+int process_wait_cons_read(char *dst, size_t len);
 
 /// Create a message queue with the given capacity of messages.
-qid_t process_queue_create(size_t capacity);
+qid_t process_queue_create(int capacity);
 /// Delete a queue from its ID.
 int process_queue_delete(qid_t qid);
 /// Send a message to a queue of given ID.

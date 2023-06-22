@@ -4,6 +4,7 @@
 #include "stdbool.h"
 #include "string.h"
 #include "stdio.h"
+#include <stdio.h>
 
 
 #define COMMAND_BUFFER_CAP 1024
@@ -14,6 +15,7 @@
 static void builtin_help(size_t argc, const char **args);
 static void builtin_ps(size_t argc, const char **args);
 static void builtin_exit(size_t argc, const char **args);
+static void builtin_echo(size_t argc, const char **args);
 static void builtin_test(size_t argc, const char **args);
 
 struct builtin {
@@ -37,6 +39,11 @@ struct builtin builtins[] = {
         "exit",
         "Shutdown the kernel.",
         builtin_exit
+    },
+    {
+        "echo",
+        "Echo the given message.",
+        builtin_echo
     },
     {
         "test",
@@ -125,9 +132,41 @@ static void builtin_help(size_t argc, const char **args) {
 
 }
 
+static void print_indent(int indent) {
+    if (indent > 16)
+        indent = 16;
+    cons_write("                ", indent);
+}
+
+static void print_children_recursive(int pid, int indent) {
+
+    char name[128];
+    getname(pid, name, 128);
+    print_indent(indent);
+    printf("- %s (%d)\n", name, pid);
+
+    int children[32];
+    int children_count = getchildren(pid, children, 32);
+    if (children_count <= 0)
+        return;
+    
+    if (children_count > 32)
+        children_count = 32;
+
+    for (int i = 0; i < children_count; i++) {
+        int child_pid = children[i];
+        print_children_recursive(child_pid, indent + 2);
+    }
+
+}
+
 static void builtin_ps(size_t argc, const char **args) {
+
     (void) argc;
     (void) args;
+
+    print_children_recursive(0, 0);
+
 }
 
 static void builtin_exit(size_t argc, const char **args) {
@@ -135,6 +174,13 @@ static void builtin_exit(size_t argc, const char **args) {
     (void) args;
     cons_echo(0);
     running = false;
+}
+
+static void builtin_echo(size_t argc, const char **args) {
+    for (size_t i = 1; i < argc; i++) {
+        printf("%s ", args[i]);
+    }
+    printf("\n");
 }
 
 
