@@ -97,3 +97,8 @@ int cons_read(char *string, unsigned long length) {
 void cons_echo(int on) {
     syscall1(SC_CONSOLE_ECHO, on);
 }
+
+
+void console_putbytes(const char *s, int len) {
+    cons_write(s, len);
+}

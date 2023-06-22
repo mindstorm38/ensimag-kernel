@@ -9,6 +9,7 @@
 #include "memory.h"
 #include "cons.h"
 #include "cga.h"
+#include <stddef.h>
 #include <stdio.h>
 
 
@@ -271,11 +272,11 @@ void cons_write(const char *src, size_t len) {
 
 }
 
-bool cons_try_read(char *dst, size_t *len_ptr, cons_wake_t wake) {
+bool cons_try_read(char *dst, size_t *len, cons_wake_t wake) {
 
-    size_t len = *len_ptr;
+    size_t max_len = *len;
 
-    if (len == 0)
+    if (max_len == 0)
         return true;
 
     if (all_buffer_len == 0) {
@@ -284,32 +285,35 @@ bool cons_try_read(char *dst, size_t *len_ptr, cons_wake_t wake) {
         return false;
     }
 
-    // printf("\nbuffer:");
-    // for (size_t i = 0; i < all_buffer_len; i++) {
-    //     printf(" %02X", all_buffer[i]);
-    // }
-    // printf("\n");
-    
+    // Cannot get more length than available.
+    if (max_len > all_buffer_len) {
+        max_len = all_buffer_len;
+    }
+
     // Copy each character one by one.
     size_t read_len = 0;
-    while (read_len < len && read_len < all_buffer_len) {
+    bool read_eol = false;
+
+    for (; !read_eol && read_len < max_len; read_len++) {
         char ch = all_buffer[read_len];
-        all_buffer_len--;
         if (ch == '\n') {
-            // Real read length doesn't take line break into account.
-            *len_ptr = read_len;
-            read_len++;
-            break;
+            read_eol = true;
         } else {
-            dst[read_len++] = ch;
+            dst[read_len] = ch;
         }
     }
+
+    all_buffer_len -= read_len;
 
     // Remove the read part.
     for (size_t j = 0; j < all_buffer_len; j++) {
         all_buffer[j] = all_buffer[j + read_len];
     }
 
+    if (read_eol)
+        read_len--;
+    
+    *len = read_len;
     return true;
 
 }

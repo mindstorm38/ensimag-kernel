@@ -1,28 +1,29 @@
-#include "start.h"
-#include "stdio.h"
 #include "ensimag.h"
+#include "shell.h"
+#include "start.h"
 
-static int test_run_wrapper(void *arg);
-int test_run(int n);
+#include "stddef.h"
 
-void console_putbytes(const char *s, int len) {
-    cons_write(s, len);
-}
+
+// static int test_run_wrapper(void *arg);
+// int test_run(int n);
+
+
 
 void user_start(void) {
-    start(test_run_wrapper, 1024, 128, "test_run_wrapper", NULL);
-    while (1);
+	start(shell_start, 4096, 1, "shell", NULL);
+	while (1);
 }
 
 
-static int test_run_wrapper(void *arg) {
-	(void) arg;
-	for (int i = 20; i <= 20; i++) {
-		printf("== RUNNING TEST %d ==\n", i);
-		int ret = test_run(i);
-		if (ret != 0)
-			return ret;
-	}
-	printf("== TESTS COMPLETE ==\n");
-	return 0;
-}
+// static int test_run_wrapper(void *arg) {
+// 	(void) arg;
+// 	for (int i = 20; i <= 20; i++) {
+// 		printf("== RUNNING TEST %d ==\n", i);
+// 		int ret = test_run(i);
+// 		if (ret != 0)
+// 			return ret;
+// 	}
+// 	printf("== TESTS COMPLETE ==\n");
+// 	return 0;
+// }

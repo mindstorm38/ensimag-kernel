@@ -43,9 +43,7 @@ size_t process_wait_cons_read(char *dst, size_t len) {
     while (1) {
 
         size_t read_len = len;
-        bool read_success = cons_try_read(dst, &read_len, process_wait_cons_read_wake);
-        
-        if (read_success)
+        if (cons_try_read(dst, &read_len, process_wait_cons_read_wake))
             return read_len;
         
         struct process *next_process = process_sched_ring_remove(process_active);

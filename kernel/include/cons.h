@@ -23,7 +23,7 @@ void cons_write(const char *src, size_t len);
 /// before reaching 'len', the full line is copied (but '\n' is not
 /// returned).
 ///
-/// If given 'len' is 0, the length is unchanged and true is returned.
+/// If given 'len' is 0, true is returned and length is unchanged.
 /// 
 /// If not enough data is available this function returns false. If 
 /// the given 'wake' function pointer is not null, it will be called 

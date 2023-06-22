@@ -31,6 +31,6 @@ void __attribute__((noreturn)) panic(const char *fmt, ...)
 	va_start(ap, fmt);
 	vprintf(fmt, ap);
 	va_end(ap);
-	*(char *)0 = 1;
+	// *(char *)0 = 1;
 	while (1);
 }

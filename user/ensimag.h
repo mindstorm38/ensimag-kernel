@@ -1,7 +1,9 @@
 #ifndef __ENSIMAG_H__
 #define __ENSIMAG_H__
 
-int start(int (*pt_func)(void *), unsigned long ssize, int prio, const char *name, void *arg);
+typedef int (*process_func_t)(void *);
+
+int start(process_func_t pt_func, unsigned long ssize, int prio, const char *name, void *arg);
 void exit(int retval) __attribute__((noreturn));
 int getpid(void);
 int getprio(int pid);
