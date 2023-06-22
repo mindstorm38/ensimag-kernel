@@ -185,14 +185,25 @@ struct process_queue {
 /// level.
 extern struct process *process_active;
 
-
-/// Register the process in the overall linked list. This also set
-/// the PID of the given process.
-void process_overall_add(struct process *process);
-/// Remove the process from the overall linked list.
-void process_overall_remove(struct process *process);
+/// Internal function that allocate a process given. Callers of this
+/// function need to initialize remaining fields 
+/// (parent/child/sibling/state).
+struct process *process_alloc(process_entry_t entry, size_t stack_size, int priority, const char *name, void *arg);
+/// Internal function to free the given process. Caller must ensure
+/// that this process is present in the overall list. The process
+/// should not be the active one.
+/// 
+/// This is typically used when the process has been a zombie and is
+/// waited for by its parent, or if its parent dies.
+void process_free(struct process *process);
 /// Get a process from its PID.
 struct process *process_from_pid(pid_t pid);
+
+// /// Register the process in the overall linked list. This also set
+// /// the PID of the given process.
+// void process_overall_add(struct process *process);
+// /// Remove the process from the overall linked list.
+// void process_overall_remove(struct process *process);
 
 /// Context switch between a previous process and a next one.
 /// This function must be called from kernel privilege level and will
