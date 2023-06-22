@@ -141,13 +141,14 @@ void process_free(struct process *process) {
         child = child->sibling;
     }
 
+    // Free the PID.
+    process_pool[process->pid] = NULL;
+    id_pool_free(process_id_pool, process->pid);
+
     // Free resources.
     kfree(process);
     kfree(process->kernel_stack);
     user_stack_free(process->stack, process->stack_size);
-
-    process_pool[process->pid] = NULL;
-    id_pool_free(process_id_pool, process->pid);
 
 }
 

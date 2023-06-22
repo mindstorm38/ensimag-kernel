@@ -1,30 +1,26 @@
 #include "internals.h"
-#include "memory.h"
+
 #include "process.h"
+#include "memory.h"
+#include "pool.h"
+
 #include "stdio.h"
 
-#define QUEUES_CAPACITY 256
 
+#define QUEUE_POOL_CAP 256
 
-static struct process_queue queues[QUEUES_CAPACITY] = {0};
-static size_t queues_count = 0;
-
-static struct process_queue *free_queue = NULL;
+static id_pool_t(QUEUE_POOL_CAP) queue_id_pool = { 0 };
+static struct process_queue *queue_pool[QUEUE_POOL_CAP] = { 0 };
 
 
 /// Get a queue pointer from its queue ID, while checking the validity
 /// of the QID.
 static struct process_queue *process_queue_from_qid(qid_t qid) {
-
-    if (qid < 0 || qid >= QUEUES_CAPACITY)
+    if (qid < 0 || qid >= QUEUE_POOL_CAP) {
         return NULL;
-
-    struct process_queue *queue = &queues[qid];
-    if (queue->messages == NULL)
-        return NULL;
-    
-    return queue;
-
+    } else {
+        return queue_pool[qid];
+    }
 }
 
 /// Add the given process to the queue's waiting list. The process
@@ -104,10 +100,10 @@ static struct process *process_queue_pop_next(struct process_queue *queue) {
 }
 
 /// Resume all waiting processes and set the reset flag to true so
-/// they will return -1 on return.
-static void process_queue_resume_reset(struct process_queue *queue) {
+/// they will return -1 on return. The given process must be in WAIT_QUEUE
+static void process_queue_resume_reset(struct process **wait_process_ptr) {
 
-    struct process *wait_process = queue->wait_process;
+    struct process *wait_process = *wait_process_ptr;
     struct process *wake_process = NULL;
 
     while (wait_process != NULL) {
@@ -125,8 +121,8 @@ static void process_queue_resume_reset(struct process_queue *queue) {
         wait_process = next_process;
 
     }
-
-    queue->wait_process = NULL;
+    
+    *wait_process_ptr = NULL;
 
     // The highest priority process has greater priority than running
     // process? Schedule it.
@@ -161,10 +157,8 @@ qid_t process_queue_create(size_t capacity) {
     printf("[%s] process_queue_create(%d)\n", process_active->name, capacity);
 #endif
 
-    if (capacity == 0 || (free_queue == NULL && queues_count >= QUEUES_CAPACITY))
+    if (capacity == 0 || id_pool_empty(queue_id_pool))
         return -1;
-
-    struct process_queue *queue;
 
     size_t messages_alloc;
     if (__builtin_mul_overflow(sizeof(int), capacity, &messages_alloc))
@@ -174,23 +168,21 @@ qid_t process_queue_create(size_t capacity) {
     if (messages == NULL)
         return -1;
 
-    if (free_queue != NULL) {
-        queue = free_queue;
-        free_queue = queue->next_free_queue;
-        queue->next_free_queue = NULL;
-    } else {
-        qid_t next_id = queues_count++;
-        queue = &queues[next_id];
-        queue->qid = next_id;
+    struct process_queue *queue = kalloc(sizeof(struct process_queue));
+    if (queue == NULL) {
+        kfree(messages);
+        return -1;
     }
 
-    queue->next_free_queue = NULL;
     queue->messages = messages;
     queue->capacity = capacity;
     queue->length = 0;
     queue->read_index = 0;
     queue->write_index = 0;
     queue->wait_process = NULL;
+
+    queue->qid = id_pool_alloc(queue_id_pool);
+    queue_pool[queue->qid] = queue;
 
     return queue->qid;
 
@@ -205,14 +197,16 @@ int process_queue_delete(qid_t qid) {
     struct process_queue *queue = process_queue_from_qid(qid);
     if (queue == NULL)
         return -1;
+
+    struct process *process = queue->wait_process;
+
+    queue_pool[queue->qid] = NULL;
+    id_pool_free(queue_id_pool, queue->qid);
     
+    process_queue_resume_reset(&process);
+
     kfree(queue->messages);
-    queue->messages = NULL;
-
-    process_queue_resume_reset(queue);
-
-    queue->next_free_queue = free_queue;
-    free_queue = queue;
+    kfree(queue);
 
     return 0;
 
@@ -391,7 +385,7 @@ int process_queue_reset(qid_t qid) {
     queue->read_index = 0;
     queue->write_index = 0;
 
-    process_queue_resume_reset(queue);
+    process_queue_resume_reset(&queue->wait_process);
 
     return 0;
 

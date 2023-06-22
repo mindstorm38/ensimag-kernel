@@ -158,8 +158,6 @@ struct process {
 };
 
 struct process_queue {
-    /// When the queue is free to be used, it is registered here.
-    struct process_queue *next_free_queue;
     /// Queue ID.
     qid_t qid;
     /// Message list allocation. This is null when the queue is not

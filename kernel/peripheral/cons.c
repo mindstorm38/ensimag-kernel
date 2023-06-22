@@ -233,6 +233,7 @@ static void cons_key_handler(enum keyboard_key key, uint32_t scancode, enum keyb
             break;
 
         case K_ENTER:
+        case K_KP_ENTER:
             cons_flush_line_buffer();
             if (echo_)
                 cons_write("\n", 1);
