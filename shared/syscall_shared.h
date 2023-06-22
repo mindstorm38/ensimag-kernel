@@ -19,12 +19,13 @@ enum syscall_num {
     SC_PROCESS_START,
     SC_PROCESS_EXIT,
     SC_PROCESS_PID,
-    SC_PROCESS_NAME,
     SC_PROCESS_PRIORITY,
     SC_PROCESS_SET_PRIORITY,
     SC_PROCESS_WAIT,
     SC_PROCESS_KILL,
     SC_PROCESS_WAIT_CLOCK,
+    SC_PROCESS_NAME,
+    SC_PROCESS_CHILDREN,
     // Process queue control
     SC_PROCESS_QUEUE_CREATE,
     SC_PROCESS_QUEUE_DELETE,
@@ -42,36 +43,5 @@ enum syscall_num {
     // Max number of syscalls
     SYSCALL_COUNT
 };
-
-// // Process control
-// #define SC_PROCESS_START            0
-// #define SC_PROCESS_EXIT             1
-// #define SC_PROCESS_PID              2
-// #define SC_PROCESS_NAME             3
-// #define SC_PROCESS_PRIORITY         4
-// #define SC_PROCESS_SET_PRIORITY     5
-// #define SC_PROCESS_WAIT             6
-// #define SC_PROCESS_KILL             7
-// #define SC_PROCESS_WAIT_CLOCK       8
-
-// // Process queue control
-// #define SC_PROCESS_QUEUE_CREATE     9
-// #define SC_PROCESS_QUEUE_DELETE     10
-// #define SC_PROCESS_QUEUE_SEND       11
-// #define SC_PROCESS_QUEUE_RECEIVE    12
-// #define SC_PROCESS_QUEUE_COUNT      13
-// #define SC_PROCESS_QUEUE_RESET      14
-
-// // Clock settings
-// #define SC_CLOCK_SETTINGS           15
-// #define SC_CLOCK_GET                16
-
-// // Console control
-// #define SC_CONSOLE_WRITE            17
-// #define SC_CONSOLE_READ             18
-// #define SC_CONSOLE_ECHO             19
-
-// // Max number of syscalls
-// #define SYSCALL_COUNT               20
 
 #endif

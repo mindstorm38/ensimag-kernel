@@ -52,6 +52,10 @@ void wait_clock(unsigned long clock) {
     syscall1(SC_PROCESS_WAIT_CLOCK, clock);
 }
 
+const char *getname(void) {
+    return (const char *) syscall0(SC_PROCESS_NAME);
+}
+
 int pcreate(int count) {
     return syscall1(SC_PROCESS_QUEUE_CREATE, count);
 }

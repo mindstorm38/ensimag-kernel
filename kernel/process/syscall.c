@@ -1,16 +1,16 @@
-#include "cons.h"
-#include "stddef.h"
-#include "stdio.h"
-
 #include "internals.h"
+
+#include "../boot/processor_structs.h"
 #include "interrupt.h"
 #include "keyboard.h"
 #include "process.h"
 #include "syscall.h"
+#include "cons.h"
 #include "pit.h"
 #include "cga.h"
 
-#include "../boot/processor_structs.h"
+#include "stddef.h"
+#include "stdio.h"
 
 
 /// Function wrapper to check access rights to pointers.

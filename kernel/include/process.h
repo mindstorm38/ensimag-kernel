@@ -30,8 +30,6 @@ void process_exit(int code) __attribute__((noreturn));
 
 /// Get PID of the current process.
 pid_t process_pid(void);
-/// Get name of the current process.
-char *process_name(void);
 
 /// Return the priority of the given pid.
 int process_priority(pid_t pid);
@@ -45,6 +43,13 @@ int process_kill(pid_t pid);
 
 /// Pause the process for given number of clock cycles.
 void process_wait_clock(uint32_t clock);
+
+/// Get name of the current process.
+const char *process_name(pid_t pid);
+/// Get children of a process. Setting all PIDs in the given array 
+/// with at most 'count' PIDs. The total children count is also 
+/// returned, which may exceed the given count.
+size_t process_children(pid_t pid, pid_t *children_pids, size_t count);
 
 /// Pause the current process waiting for reading the console.
 size_t process_wait_cons_read(char *dst, size_t len);

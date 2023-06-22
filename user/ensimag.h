@@ -12,6 +12,8 @@ int waitpid(int pid, int *retval);
 int kill(int pid);
 void wait_clock(unsigned long clock);
 
+const char *getname(void);
+
 int pcreate(int count);
 int pdelete(int fid);
 int psend(int fid, int message);
