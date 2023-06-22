@@ -59,7 +59,7 @@ static void cons_write_char(char ch) {
         }
     } else if (ch == '\t') {
         write_column &= ~(0b1111);
-        write_column += 8;
+        write_column += 4;
     } else if (ch == '\n') {
         write_line++;
         write_column = 0;

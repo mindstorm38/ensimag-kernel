@@ -4,7 +4,6 @@
 #include "stdbool.h"
 #include "string.h"
 #include "stdio.h"
-#include <stdio.h>
 
 
 #define COMMAND_BUFFER_CAP 1024
@@ -12,41 +11,47 @@
 
 
 /// Builtin help command that displays all builtin commands.
-static void builtin_help(size_t argc, const char **args);
-static void builtin_ps(size_t argc, const char **args);
-static void builtin_exit(size_t argc, const char **args);
-static void builtin_echo(size_t argc, const char **args);
-static void builtin_test(size_t argc, const char **args);
+static bool builtin_help(size_t argc, const char **args);
+static bool builtin_ps(size_t argc, const char **args);
+static bool builtin_exit(size_t argc, const char **args);
+static bool builtin_echo(size_t argc, const char **args);
+static bool builtin_test(size_t argc, const char **args);
 
 struct builtin {
     const char *name;
+    const char *args;
     const char *description;
-    void (*func)(size_t argc, const char **args);
+    bool (*func)(size_t argc, const char **args);
 };
 
 struct builtin builtins[] = {
     {
         "help",
+        "",
         "Displays all builtin commands.",
         builtin_help
     },
     {
         "ps",
+        "",
         "Display hierarchy of active processes.",
         builtin_ps
     },
     {
         "exit",
+        "",
         "Shutdown the kernel.",
         builtin_exit
     },
     {
         "echo",
-        "Echo the given message.",
+        "<on|off>",
+        "Enable echo (on) or not (off).",
         builtin_echo
     },
     {
         "test",
+        "",
         "Run internal test suite.",
         builtin_test
     },
@@ -103,7 +108,9 @@ int shell_start(void *arg) {
         const char *cmd = args[0];
         for (struct builtin *bt = builtins; bt->name != NULL; bt++) {
             if (strcmp(bt->name, cmd) == 0) {
-                bt->func(argc, args);
+                if (!bt->func(argc, args)) {
+                    printf("Usage: %s %s\n", bt->name, bt->args);
+                }
                 builtin_found = true;
                 break;
             }
@@ -119,23 +126,32 @@ int shell_start(void *arg) {
 
 }
 
-static void builtin_help(size_t argc, const char **args) {
+
+static bool builtin_help(size_t argc, const char **args) {
 
     (void) argc;
     (void) args;
 
     printf("\n");
     for (struct builtin *bt = builtins; bt->name != NULL; bt++) {
-        printf("%6s - %s\n", bt->name, bt->description);
+        if (bt->args[0] != 0) {
+            printf("%8s %s\n", bt->name, bt->args);
+            printf("         - %s\n", bt->description);
+        } else {
+            printf("%8s - %s\n", bt->name, bt->description);
+        }
     }
     printf("\n");
 
+    return true;
+
 }
+
 
 static void print_indent(int indent) {
     if (indent > 16)
         indent = 16;
-    cons_write("                ", indent);
+    cons_write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t", indent);
 }
 
 static void print_children_recursive(int pid, int indent) {
@@ -143,7 +159,7 @@ static void print_children_recursive(int pid, int indent) {
     char name[128];
     getname(pid, name, 128);
     print_indent(indent);
-    printf("- %s (%d)\n", name, pid);
+    printf("%s (%d)\n", name, pid);
 
     int children[32];
     int children_count = getchildren(pid, children, 32);
@@ -155,32 +171,44 @@ static void print_children_recursive(int pid, int indent) {
 
     for (int i = 0; i < children_count; i++) {
         int child_pid = children[i];
-        print_children_recursive(child_pid, indent + 2);
+        print_children_recursive(child_pid, indent + 1);
     }
 
 }
 
-static void builtin_ps(size_t argc, const char **args) {
-
+static bool builtin_ps(size_t argc, const char **args) {
     (void) argc;
     (void) args;
-
     print_children_recursive(0, 0);
-
+    return true;
 }
 
-static void builtin_exit(size_t argc, const char **args) {
+
+static bool builtin_exit(size_t argc, const char **args) {
     (void) argc;
     (void) args;
     cons_echo(0);
     running = false;
+    return true;
 }
 
-static void builtin_echo(size_t argc, const char **args) {
-    for (size_t i = 1; i < argc; i++) {
-        printf("%s ", args[i]);
-    }
-    printf("\n");
+
+static bool builtin_echo(size_t argc, const char **args) {
+    
+    if (argc != 2)
+        return false;
+
+    if (strcmp("on", args[1]) == 0) {
+        cons_echo(1);
+        printf("Read echo on...\n");
+    } else if (strcmp("off", args[1]) == 0) {
+        cons_echo(0);
+        printf("Read echo off...\n");
+    } else 
+        return false;
+    
+    return true;
+
 }
 
 
@@ -198,12 +226,15 @@ static int test_wrapper(void *arg) {
 	return 0;
 }
 
-static void builtin_test(size_t argc, const char **args) {
+static bool builtin_test(size_t argc, const char **args) {
 
     (void) argc;
     (void) args;
 
     int pid = start(test_wrapper, 4096, 128, "test_wrapper", NULL);
     waitpid(pid, NULL);
+
+
+    return true;
 
 }

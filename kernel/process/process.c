@@ -334,7 +334,7 @@ int process_name(pid_t pid, char *dst, int count) {
     if (process == NULL)
         return -1;
     
-    int name_len = strlen(process->name);
+    int name_len = strlen(process->name) + 1; // count 0
     strncpy(dst, process->name, count <= name_len ? count : name_len);
     
     return name_len;
