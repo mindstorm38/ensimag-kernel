@@ -1,10 +1,10 @@
 #include "interrupt.h"
 #include "pit.h"
 #include "cpu.h"
+#include "log.h"
 
 #include "stddef.h"
 #include "stdio.h"
-#include <stdio.h>
 
 
 #define PIT_CHAN0_DATA  0x0040
@@ -44,13 +44,13 @@ static void pit_interrupt_handler(void) {
 
 void pit_init(void) {
 
-    printf("[    ] PIT init...");
+    printf(LOG_EMPTY "PIT init...\r");
 
     pit_set_frequency();
     irq_set_handler(IRQ_PIT, pit_interrupt_handler);
     irq_mask(IRQ_PIT, false);
 
-    printf("\r[ \aaOK\ar ] PIT ready     \n");
+    printf(LOG_OK "PIT ready     \n");
 
 }
 

@@ -6,6 +6,7 @@
 #include "keyboard.h"
 #include "cpu.h"
 #include "ps2.h"
+#include "log.h"
 
 
 /// Key for scancode set 2 in normal code mode.
@@ -77,7 +78,9 @@ static struct keyboard_layout_impl *current_layout;
 static bool scan_break = false;
 static bool scan_extended = false;
 
+static bool key_ctrl = false;
 static bool key_shift = false;
+static bool key_alt = false;
 static bool key_alt_graph = false;
 
 static keyboard_key_handler_t key_handler = NULL;
@@ -86,17 +89,35 @@ static keyboard_char_handler_t char_handler = NULL;
 
 /// Internal keyboard key code handler.
 static void keyboard_key_handler(enum keyboard_key key, uint32_t scancode, enum keyboard_action action) {
-    
-    if (key_handler != NULL)
-        key_handler(key, scancode, action, 0);
 
     if (key == K_LEFT_SHIFT || key == K_RIGHT_SHIFT) {
         key_shift = (action == K_PRESS);
     } else if (key == K_RIGHT_ALT) {
         key_alt_graph = (action == K_PRESS);
+    } else if (key == K_LEFT_ALT) {
+        key_alt = (action == K_PRESS);
+    } else if (key == K_LEFT_CTRL || key == K_RIGHT_CTRL) {
+        key_ctrl = (action == K_PRESS);
+    }
+    
+    if (key_handler != NULL) {
+        
+        uint8_t mods = 0;
+
+        if (key_ctrl)
+            mods |= K_MOD_CTRL;
+        if (key_shift)
+            mods |= K_MOD_SHIFT;
+        if (key_alt)
+            mods |= K_MOD_ALT;
+        if (key_alt_graph)
+            mods |= K_MOD_ALT_GRAPH;
+        
+        key_handler(key, scancode, action, mods);
+
     }
 
-    if (action == K_PRESS && key >= K_PRINTABLE_FIRST && key <= K_PRINTABLE_LAST) {
+    if (char_handler != NULL && action == K_PRESS && key >= K_PRINTABLE_FIRST && key <= K_PRINTABLE_LAST) {
         
         char c;
         if (key_alt_graph) {
@@ -107,7 +128,7 @@ static void keyboard_key_handler(enum keyboard_key key, uint32_t scancode, enum 
             c = current_layout->printable[key - K_PRINTABLE_FIRST];
         }
 
-        if (char_handler != NULL && c != 0)
+        if (c != 0)
             char_handler(c);
 
     }
@@ -142,34 +163,34 @@ static void keyboard_handler(uint8_t scancode) {
 
 void keyboard_init(void) {
 
-    printf("[    ] Keyboard driver init...");
+    printf(LOG_EMPTY "Keyboard driver init...\r");
 
     if (!ps2_ready()) {
-        printf("\r[\acFAIL\ar] Keyboard driver failed because PS/2 driver has failed\n");
+        printf(LOG_FAIL "Keyboard driver failed because PS/2 driver has failed\n");
         return;
     }
 
     if (ps2_device_id(PS2_FIRST) != PS2_DEV_KEYBOARD_MF2) {
-        printf("\r[\acFAIL\ar] Keyboard driver failed because no PS/2 keyboard detected: %d\n", ps2_device_id(PS2_FIRST));
+        printf(LOG_FAIL "Keyboard driver failed because no PS/2 keyboard detected: %d\n", ps2_device_id(PS2_FIRST));
         return;
     }
 
     // Select scan code set 2.
     if (ps2_device_command(PS2_FIRST, 0x02F0, true, false) != PS2_DEV_RES_ACK) {
-        printf("\r[\acFAIL\ar] Keyboard driver failed to set scancode set 2\n");
+        printf(LOG_FAIL "Keyboard driver failed to set scancode set 2\n");
         return;
     }
 
     // Check that the scan code was set to 2.
     if (ps2_device_command(PS2_FIRST, 0x00F0, true, true) != 0x02) {
-        printf("\r[\acFAIL\ar] Keyboard driver failed to set scancode set 2\n");
+        printf(LOG_FAIL "Keyboard driver failed to set scancode set 2\n");
         return;
     }
 
     keyboard_set_layout(KEYBOARD_LAYOUT_FR);
     ps2_device_set_handler(PS2_FIRST, keyboard_handler);
 
-    printf("\r[ \aaOK\ar ] Keyboard driver ready       \n");
+    printf(LOG_OK "Keyboard driver ready       \n");
 
 }
 

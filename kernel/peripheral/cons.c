@@ -9,8 +9,6 @@
 #include "memory.h"
 #include "cons.h"
 #include "cga.h"
-#include <stddef.h>
-#include <stdio.h>
 
 
 // Variables related to writing a formatted character at particular
@@ -58,8 +56,8 @@ static void cons_write_char(char ch) {
             write_column--;
         }
     } else if (ch == '\t') {
-        write_column &= ~(0b1111);
-        write_column += 4;
+        write_column &= ~(0b111);
+        write_column += 8;
     } else if (ch == '\n') {
         write_line++;
         write_column = 0;
@@ -69,9 +67,7 @@ static void cons_write_char(char ch) {
         write_column = 0;
     } else if (ch == '\r') {
         write_column = 0;
-    } else if (ch == '\a') {
-        // We use the Bell character followed a color code for 
-        // changing the formatting of the output.
+    } else if (ch == '\033') {
         waiting_format_code = !waiting_format_code;
     }
 
@@ -134,39 +130,6 @@ static void cons_flush_line_buffer(void) {
         wake_func = NULL;
         wake();
     }
-
-}
-
-/// Internal function that is triggered when a character is received.
-static void cons_char_handler(char ch) {
-
-    if (line_buffer_cursor < LINE_BUFFER_CAP) {
-
-        // When inserting, we need to increase move all characters
-        // to right.
-        if (line_buffer_insert) {
-
-            // Cannot insert if length is already at its maximum cap.
-            if (line_buffer_len >= LINE_BUFFER_CAP) {
-                return;
-            }
-
-            line_buffer_len++;
-            for (size_t i = line_buffer_len - 1; i > line_buffer_cursor; i--) {
-                line_buffer[i] = line_buffer[i - 1];
-            }
-
-        }
-
-        line_buffer[line_buffer_cursor++] = ch;
-
-        if (line_buffer_cursor > line_buffer_len) {
-            line_buffer_len = line_buffer_cursor;
-        }
-
-    }
-
-    cons_echo_line_buffer();
 
 }
 
@@ -244,6 +207,39 @@ static void cons_key_handler(enum keyboard_key key, uint32_t scancode, enum keyb
         }
 
     }
+
+}
+
+/// Internal function that is triggered when a character is received.
+static void cons_char_handler(char ch) {
+
+    if (line_buffer_cursor < LINE_BUFFER_CAP) {
+
+        // When inserting, we need to increase move all characters
+        // to right.
+        if (line_buffer_insert) {
+
+            // Cannot insert if length is already at its maximum cap.
+            if (line_buffer_len >= LINE_BUFFER_CAP) {
+                return;
+            }
+
+            line_buffer_len++;
+            for (size_t i = line_buffer_len - 1; i > line_buffer_cursor; i--) {
+                line_buffer[i] = line_buffer[i - 1];
+            }
+
+        }
+
+        line_buffer[line_buffer_cursor++] = ch;
+
+        if (line_buffer_cursor > line_buffer_len) {
+            line_buffer_len = line_buffer_cursor;
+        }
+
+    }
+
+    cons_echo_line_buffer();
 
 }
 

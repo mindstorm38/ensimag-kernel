@@ -1,10 +1,9 @@
 #include "interrupt.h"
 #include "ps2.h"
 #include "cpu.h"
+#include "log.h"
 
 #include "stdio.h"
-#include <stdint.h>
-#include <stdio.h>
 
 #define PS2_DATA_RW    0x0060
 #define PS2_STATUS_R   0x0064
@@ -180,7 +179,7 @@ static void ps2_port_b_handler(void) {
 
 void ps2_init(void) {
 
-    printf("[    ] PS/2 driver init...");
+    printf(LOG_EMPTY "PS/2 driver init...\r");
 
     uint8_t conf, port_test;
     uint16_t id;
@@ -211,7 +210,7 @@ void ps2_init(void) {
 
     // Perform Controller Self Test
     if ((port_test = ps2_command_read(PS2_CMD_TEST)) != 0x55) {
-        printf("\r[\acFAIL\ar] PS/2 driver failed self test, code: %d\n", port_test);
+        printf(LOG_FAIL "PS/2 driver failed self test, code: %d\n", port_test);
         return;
     }
 
@@ -236,12 +235,12 @@ void ps2_init(void) {
 
     // Perform Interface Tests 
     if ((port_test = ps2_command_read(PS2_CMD_TEST_PORT_A)) != 0) {
-        printf("\r[\acFAIL\ar] PS/2 first port failed test, code: %d\n", port_test);
+        printf(LOG_FAIL "PS/2 first port failed test, code: %d\n", port_test);
         return;
     }
 
     if (ps2_dual_ && (port_test = ps2_command_read(PS2_CMD_TEST_PORT_B)) != 0) {
-        printf("\r[\acFAIL\ar] PS/2 second port failed test, code: %d\n", port_test);
+        printf(LOG_FAIL "PS/2 second port failed test, code: %d\n", port_test);
         return;
     }
 
@@ -252,13 +251,13 @@ void ps2_init(void) {
 
     // Identify Devices
     if ((id = ps2_device_identify(PS2_FIRST)) == PS2_DEV_INVALID) {
-        printf("\r[\aeWARN\ar] PS/2 failed to identify first device\n");
+        printf(LOG_WARN "PS/2 failed to identify first device\n");
     } else {
         ps2_port_ids[PS2_FIRST] = id;
     }
 
     if (ps2_dual_ && (id = ps2_device_identify(PS2_SECOND)) == PS2_DEV_INVALID) {
-        printf("\r[\aeWARN\ar] PS/2 failed to identify second device\n");
+        printf(LOG_WARN "PS/2 failed to identify second device\n");
     } else if (ps2_dual_) {
         ps2_port_ids[PS2_SECOND] = id;
     }
@@ -280,8 +279,8 @@ void ps2_init(void) {
     }
 
     ps2_ready_ = true;
-    printf("\r[ \aaOK\ar ] PS/2 driver ready      \n");
-    printf("       first dev: 0x%04X", ps2_port_ids[PS2_FIRST]);
+    printf(LOG_OK "PS/2 driver ready      \n");
+    printf(LOG_INDENT "first dev: 0x%04X", ps2_port_ids[PS2_FIRST]);
     if (ps2_dual_)
         printf(", second dev: 0x%04X", ps2_port_ids[PS2_SECOND]);
     printf("\n");

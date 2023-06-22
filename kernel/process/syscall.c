@@ -8,6 +8,7 @@
 #include "cons.h"
 #include "pit.h"
 #include "cga.h"
+#include "log.h"
 
 #include "stddef.h"
 #include "stdio.h"
@@ -68,7 +69,7 @@ struct syscall_context *syscall_context = NULL;
 void syscall_handler(void);
 
 void syscall_init(void) {
-    printf("[    ] System calls init...");
+    printf(LOG_EMPTY "System calls init...\r");
     idt_interrupt_gate(SYSCALL_INTERRUPT, (uint32_t) syscall_handler, 3);
-    printf("\r[ \aaOK\ar ] System calls ready: %d syscalls\n", SYSCALL_COUNT);
+    printf(LOG_OK "System calls ready: %d syscalls\n", SYSCALL_COUNT);
 }

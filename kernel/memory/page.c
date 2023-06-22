@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "log.h"
 
 #include "stdbool.h"
 #include "stddef.h"
@@ -34,7 +35,7 @@ static size_t page_count_padded(size_t size) {
 
 void page_init() {
 
-    printf("[    ] Page allocator init...");
+    printf(LOG_EMPTY "Page allocator init...\r");
 
     heap_size = &mem_heap_end - &mem_heap;
 
@@ -54,8 +55,8 @@ void page_init() {
         page_set_allocated(i, true);
     }
 
-    printf("\r[ \aaOK\ar ] Page allocator ready          \n");
-    printf("       heap: %d Mio, pages: %d, meta pages: %d\n", 
+    printf(LOG_OK "Page allocator ready          \n");
+    printf(LOG_INDENT "heap: %d Mio, pages: %d, meta pages: %d\n", 
         heap_size / 1048576,
         page_count,
         meta_page_count);

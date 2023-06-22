@@ -151,7 +151,7 @@ static bool builtin_help(size_t argc, const char **args) {
 static void print_indent(int indent) {
     if (indent > 16)
         indent = 16;
-    cons_write("\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t", indent);
+    cons_write("                ", indent);
 }
 
 static void print_children_recursive(int pid, int indent) {
@@ -171,7 +171,7 @@ static void print_children_recursive(int pid, int indent) {
 
     for (int i = 0; i < children_count; i++) {
         int child_pid = children[i];
-        print_children_recursive(child_pid, indent + 1);
+        print_children_recursive(child_pid, indent + 4);
     }
 
 }
