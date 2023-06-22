@@ -10,19 +10,20 @@
 #include "cpu.h"
 #include "pit.h"
 #include "ps2.h"
+#include "log.h"
 
 #include "stdio.h"
 
 
 void kernel_start(void) {
 
-	printf("\f[ .. ] Kernel starting...\n");
+	printf("\f");
 	page_init();
 	pit_init();
 	ps2_init();
 	keyboard_init();
 	syscall_init();
-	printf("[ \033aOK\033r ] Kernel ready\n\n");
+	printf(LOG_OK "Kernel ready\n\n");
 	cons_start();
 
 	process_idle(user_start, 512, NULL);

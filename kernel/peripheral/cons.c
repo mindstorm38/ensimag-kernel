@@ -17,7 +17,8 @@ static enum cga_color fg_color = CGA_WHITE;
 static enum cga_color bg_color = CGA_BLACK;
 static uint32_t write_line = 0;
 static uint32_t write_column = 0;
-static bool waiting_format_code = false;
+static bool write_escape = false;
+static bool write_escape_bg = false;
 
 #define ALL_BUFFER_CAP 2048
 static char all_buffer[ALL_BUFFER_CAP];
@@ -37,18 +38,40 @@ static bool line_buffer_insert = true;
 static bool echo_ = true;
 
 
+/// Internal function that support writing with special control 
+/// character '\033' followed by a color character (hexadecimal lower
+/// case character). This color is applied by default to foreground,
+/// but can be applied to background if the color code is preceeded
+/// by a dash '-'.
 static void cons_write_char(char ch) {
 
-    if (waiting_format_code && (ch >= '0' && ch <= '9')) {
-        fg_color = ch - '0';
-        waiting_format_code = false;
-    } else if (waiting_format_code && (ch >= 'a' && ch <= 'f')) {
-        fg_color = (ch - 'a') + 10;
-        waiting_format_code = false;
-    } else if (waiting_format_code && ch == 'r') {
-        fg_color = CGA_WHITE;
-        bg_color = CGA_BLACK;
-        waiting_format_code = false;
+    if (write_escape) {
+
+        enum cga_color new_color = CGA_WHITE;
+        
+        if (ch == '-' && !write_escape_bg) {
+            write_escape_bg = true;
+            return;
+        } else if (ch >= '0' && ch <= '9') {
+            new_color = ch - '0';
+        } else if (ch >= 'a' && ch <= 'f') {
+            new_color = (ch - 'a') + 10;
+        } else if (ch == 'r') {
+            if (write_escape_bg) {
+                new_color = CGA_BLACK;
+            }
+        }
+
+        if (write_escape_bg) {
+            bg_color = new_color;
+        } else {
+            fg_color = new_color;
+        }
+
+        write_escape = false;
+        write_escape_bg = false;
+        return;
+
     } else if (ch >= 32 && ch <= 126) {
         cga_set_char(write_line, write_column++, ch, fg_color, bg_color);
     } else if (ch == '\b') {
@@ -68,7 +91,7 @@ static void cons_write_char(char ch) {
     } else if (ch == '\r') {
         write_column = 0;
     } else if (ch == '\033') {
-        waiting_format_code = !waiting_format_code;
+        write_escape = !write_escape;
     }
 
     if (write_column >= CGA_COLS) {
