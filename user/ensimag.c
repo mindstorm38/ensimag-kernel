@@ -56,6 +56,10 @@ int getchildren(int pid, int *children_pids, int count) {
     return syscall3(SC_PROCESS_CHILDREN, pid, (size_t) children_pids, count);
 }
 
+int getstate(int pid) {
+    return syscall1(SC_PROCESS_STATE, pid);
+}
+
 void wait_clock(unsigned long clock) {
     syscall1(SC_PROCESS_WAIT_CLOCK, clock);
 }

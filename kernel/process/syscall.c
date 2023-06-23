@@ -59,6 +59,7 @@ syscall_handler_t syscall_handlers[SYSCALL_COUNT] = {
     [SC_PROCESS_WAIT]           = process_wait,
     [SC_PROCESS_KILL]           = process_kill,
     [SC_PROCESS_NAME]           = process_name,
+    [SC_PROCESS_STATE]          = process_state,
     [SC_PROCESS_CHILDREN]       = process_children,
     [SC_PROCESS_WAIT_CLOCK]     = process_wait_clock,
     [SC_PROCESS_QUEUE_CREATE]   = process_queue_create,

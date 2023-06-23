@@ -12,6 +12,7 @@ int waitpid(int pid, int *retval);
 int kill(int pid);
 int getname(int pid, char *dst, int count);
 int getchildren(int pid, int *children_pids, int count);
+int getstate(int pid);
 
 void wait_clock(unsigned long clock);
 

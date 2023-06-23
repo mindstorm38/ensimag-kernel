@@ -66,8 +66,6 @@ struct builtin builtins[] = {
     { 0 }
 };
 
-static bool running = true;
-
 int shell_start(void *arg) {
 
 	(void) arg;
@@ -80,7 +78,7 @@ int shell_start(void *arg) {
     // Enable echo by default.
 	cons_echo(1);
 
-	while (running) {
+	while (true) {
 
 		printf("$ ");
 
@@ -110,6 +108,10 @@ int shell_start(void *arg) {
         }
 
         if (argc == 0)
+            continue;
+        
+        bool background = args[argc - 1][0] == '&' && args[argc - 1][1] == 0;
+        if (background && --argc == 0)
             continue;
 
         bool builtin_found = false;
@@ -162,13 +164,31 @@ static void print_indent(int indent) {
     cons_write("                ", indent);
 }
 
+static const char *get_state_name(int state) {
+    switch (state) {
+        case 0: return "active";
+        case 1: return "scheduled";
+        case 2: return "wait-child";
+        case 3: return "wait-time";
+        case 4: return "wait-queue";
+        case 5: return "wait-cons";
+        case 6: return "zombie";
+        default: return "unknown";
+    }
+}
+
 static void print_children_recursive(int pid, int indent) {
 
     char name[128];
     getname(pid, name, 128);
-    print_indent(indent);
-    printf("%s (pid: %d, prio: %d)\n", name, pid, getprio(pid));
 
+    print_indent(indent);
+    printf("%s (pid: %d, prio: %d, state: %s)\n", name, 
+        pid, 
+        getprio(pid), 
+        get_state_name(getstate(pid)));
+
+    // Recursive on children.
     int children[32];
     int children_count = getchildren(pid, children, 32);
     if (children_count <= 0)
@@ -239,19 +259,26 @@ int test_run(int n);
 static int test_wrapper(void *arg) {
 
     int index = (int) arg;
+    int ret = 0;
+
+    cons_echo(0);
 
     if (index == -1) {
         for (int i = 1; i <= 20; i++) {
             printf("\033e== RUNNING TEST %d ==\033r\n", i);
-            int ret = test_run(i);
+            ret = test_run(i);
             if (ret != 0)
-                return ret;
+                break;
         }
-        printf("\033e== TESTS COMPLETE ==\033r\n");
-	    return 0;
+        if (ret == 0)
+            printf("\033e== TESTS COMPLETE ==\033r\n");
     } else {
-        return test_run(index);
+        ret = test_run(index);
     }
+    
+    cons_echo(1);
+
+    return ret;
 
 }
 

@@ -25,6 +25,7 @@ enum syscall_num {
     SC_PROCESS_KILL,
     SC_PROCESS_NAME,
     SC_PROCESS_CHILDREN,
+    SC_PROCESS_STATE,
     SC_PROCESS_WAIT_CLOCK,
     // Process queue control
     SC_PROCESS_QUEUE_CREATE,

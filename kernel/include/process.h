@@ -53,6 +53,10 @@ int process_name(pid_t pid, char *dst, int count);
 /// The function returns -1 if either the PID is invalid, the given
 /// children count is less than 0.
 int process_children(pid_t pid, pid_t *children_pids, int count);
+/// Return the state of a process. Returns -1 if pid cannot be found,
+/// and return 0 if the process is the active one, other states starts
+/// at value 1.
+int process_state(pid_t pid);
 
 /// Pause the process for given number of clock cycles.
 void process_wait_clock(uint32_t clock);

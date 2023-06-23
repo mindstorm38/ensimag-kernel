@@ -372,6 +372,16 @@ int process_children(pid_t pid, pid_t *children_pids, int count) {
 
 }
 
+int process_state(pid_t pid) {
+
+    struct process *process = process_from_pid(pid);
+    if (process == NULL)
+        return -1;
+    
+    return process_active == process ? 0 : (int) process->state + 1;
+
+}
+
 
 void process_wait_clock(uint32_t clock) {
 
