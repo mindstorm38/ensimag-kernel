@@ -6,3 +6,4 @@
 6. Restructurer les types entiers, à la linux, par exemple u8, u16, u32;
 7. Meilleur support claviers anglais;
 8. Nommage des fonction syscall à revoir;
+9. Gérer capslock

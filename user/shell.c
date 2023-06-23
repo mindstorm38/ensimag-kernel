@@ -229,7 +229,12 @@ static bool builtin_exit(size_t argc, const char **args) {
     if (argc != 1)
         return false;
 
+    cons_echo(0);
+
+    printf("\033c\033-6Shutting down...\033r\033-r\n");
+    wait_clock(current_clock() + 50);
     system_power_off();
+
     return true;
     
 }

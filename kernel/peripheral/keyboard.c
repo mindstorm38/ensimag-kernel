@@ -82,6 +82,8 @@ static bool key_ctrl = false;
 static bool key_shift = false;
 static bool key_alt = false;
 static bool key_alt_graph = false;
+static bool key_caps_lock = false;
+static bool key_num_lock = false;
 
 static keyboard_key_handler_t key_handler = NULL;
 static keyboard_char_handler_t char_handler = NULL;
@@ -98,6 +100,10 @@ static void keyboard_key_handler(enum keyboard_key key, uint32_t scancode, enum 
         key_alt = (action == K_PRESS);
     } else if (key == K_LEFT_CTRL || key == K_RIGHT_CTRL) {
         key_ctrl = (action == K_PRESS);
+    } else if (key == K_CAPS_LOCK && action == K_PRESS) {
+        key_caps_lock = !key_caps_lock;
+    } else if (key == K_NUM_LOCK && action == K_PRESS) {
+        key_num_lock = !key_num_lock;
     }
     
     if (key_handler != NULL) {
@@ -112,6 +118,10 @@ static void keyboard_key_handler(enum keyboard_key key, uint32_t scancode, enum 
             mods |= K_MOD_ALT;
         if (key_alt_graph)
             mods |= K_MOD_ALT_GRAPH;
+        if (key_caps_lock)
+            mods |= K_MOD_CAPS_LOCK;
+        if (key_num_lock)
+            mods |= K_MOD_NUM_LOCK;
         
         key_handler(key, scancode, action, mods);
 
@@ -122,7 +132,7 @@ static void keyboard_key_handler(enum keyboard_key key, uint32_t scancode, enum 
         char c;
         if (key_alt_graph) {
             c = current_layout->printable_alt_graph[key - K_PRINTABLE_FIRST];
-        } else if (key_shift) {
+        } else if (key_shift || key_caps_lock) {
             c = current_layout->printable_shift[key - K_PRINTABLE_FIRST];
         } else {
             c = current_layout->printable[key - K_PRINTABLE_FIRST];

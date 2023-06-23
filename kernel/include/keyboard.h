@@ -173,6 +173,8 @@ enum keyboard_key {
 #define K_MOD_SHIFT     0x02
 #define K_MOD_ALT       0x04
 #define K_MOD_ALT_GRAPH 0x08
+#define K_MOD_CAPS_LOCK 0x10
+#define K_MOD_NUM_LOCK  0x20
 
 /// Type alias for the key handler type.
 typedef void (*keyboard_key_handler_t)(enum keyboard_key key, uint32_t scancode, enum keyboard_action action, uint8_t mods);
