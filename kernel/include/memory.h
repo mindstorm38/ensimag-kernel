@@ -17,8 +17,11 @@ void *page_alloc(size_t size);
 /// Low-level kernel page free function, pointer and count are not 
 /// checked to be valid, be careful.
 void page_free(void *ptr, size_t size);
+
+/// Return the total number of page allocatable.
+size_t page_capacity(void);
 /// Get the current allocation count.
-size_t page_alloc_count();
+size_t page_used(void);
 
 // TODO: Alignment guarantees.
 void *kalloc(size_t size);

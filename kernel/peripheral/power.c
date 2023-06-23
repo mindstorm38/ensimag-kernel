@@ -3,6 +3,6 @@
 
 
 void power_off(void) {
-    // Specific to QEMU.
+    // Specific to QEMU (for now).
     outw(0x2000, 0x604);
 }

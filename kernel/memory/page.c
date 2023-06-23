@@ -148,6 +148,10 @@ void page_free(void *ptr, size_t size) {
 
 }
 
-size_t page_alloc_count() {
+size_t page_capacity(void) {
+    return page_count;
+}
+
+size_t page_used() {
     return alloc_count;
 }

@@ -5,6 +5,8 @@
 #include "keyboard.h"
 #include "process.h"
 #include "syscall.h"
+#include "memory.h"
+#include "power.h"
 #include "cons.h"
 #include "pit.h"
 #include "cga.h"
@@ -30,6 +32,16 @@ static uint32_t clock_get() {
 static void console_write(const char *src, int32_t len) {
     if (process_check_user_ptr(src)) {
         cons_write(src, len);
+    }
+}
+
+static int system_memory_info(size_t *capacity, size_t *used) {
+    if (process_check_user_ptr(capacity) && process_check_user_ptr(used)) {
+        *capacity = page_capacity() * PAGE_SIZE;
+        *used = page_used() * PAGE_SIZE;
+        return 0;
+    } else {
+        return -1;
     }
 }
 
@@ -60,6 +72,8 @@ syscall_handler_t syscall_handlers[SYSCALL_COUNT] = {
     [SC_CONSOLE_WRITE]          = console_write,
     [SC_CONSOLE_READ]           = process_wait_cons_read,
     [SC_CONSOLE_ECHO]           = cons_echo,
+    [SC_SYSTEM_MEMORY_INFO]     = system_memory_info,
+    [SC_SYSTEM_POWER_OFF]       = power_off,
 };
 
 struct syscall_context *syscall_context = NULL;

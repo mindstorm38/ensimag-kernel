@@ -40,6 +40,9 @@ enum syscall_num {
     SC_CONSOLE_WRITE,
     SC_CONSOLE_READ,
     SC_CONSOLE_ECHO,
+    // System management
+    SC_SYSTEM_MEMORY_INFO,
+    SC_SYSTEM_POWER_OFF,
     // Max number of syscalls
     SYSCALL_COUNT
 };

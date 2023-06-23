@@ -1,0 +1,5 @@
+1. Pagination mémoire;
+2. Unification de l'allocateur mémoire pour l'utilisation dans le kernel et user space;
+3. Amélioration du processus idle pour le remettre dans le kernel mode (comme linux);
+4. Shutdown/reboot du system si idle est seul;
+5. Retravailler le workspace pour inclure shared et user au dossier kernel, pour mettre en commun le makefile;

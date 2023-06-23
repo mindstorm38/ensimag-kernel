@@ -3,6 +3,7 @@
 
 #include "stdbool.h"
 #include "string.h"
+#include "stdlib.h"
 #include "stdio.h"
 
 
@@ -34,7 +35,7 @@ struct builtin builtins[] = {
     {
         "ps",
         "",
-        "Display hierarchy of active processes.",
+        "Display system information, like processes and memory.",
         builtin_ps
     },
     {
@@ -51,7 +52,7 @@ struct builtin builtins[] = {
     },
     {
         "test",
-        "",
+        "[1-20]",
         "Run internal test suite.",
         builtin_test
     },
@@ -109,7 +110,7 @@ int shell_start(void *arg) {
         for (struct builtin *bt = builtins; bt->name != NULL; bt++) {
             if (strcmp(bt->name, cmd) == 0) {
                 if (!bt->func(argc, args)) {
-                    printf("Usage: %s %s\n", bt->name, bt->args);
+                    printf("\033eUsage:\033r %s \033b%s\033r\n", bt->name, bt->args);
                 }
                 builtin_found = true;
                 break;
@@ -117,7 +118,7 @@ int shell_start(void *arg) {
         }
 
         if (!builtin_found) {
-            printf("Command not found! Try 'help'...\n");
+            printf("\033cCommand not found! Try 'help'...\033r\n");
         }
 
 	}
@@ -129,19 +130,19 @@ int shell_start(void *arg) {
 
 static bool builtin_help(size_t argc, const char **args) {
 
-    (void) argc;
     (void) args;
+    if (argc != 1)
+        return false;
 
-    printf("\n");
+    printf("\033eCommands:\033r\n");
     for (struct builtin *bt = builtins; bt->name != NULL; bt++) {
         if (bt->args[0] != 0) {
-            printf("%8s %s\n", bt->name, bt->args);
+            printf("%8s \033b%s\033r\n", bt->name, bt->args);
             printf("         - %s\n", bt->description);
         } else {
             printf("%8s - %s\n", bt->name, bt->description);
         }
     }
-    printf("\n");
 
     return true;
 
@@ -159,7 +160,7 @@ static void print_children_recursive(int pid, int indent) {
     char name[128];
     getname(pid, name, 128);
     print_indent(indent);
-    printf("%s (%d)\n", name, pid);
+    printf("%s (pid: %d, prio: %d)\n", name, pid, getprio(pid));
 
     int children[32];
     int children_count = getchildren(pid, children, 32);
@@ -171,25 +172,40 @@ static void print_children_recursive(int pid, int indent) {
 
     for (int i = 0; i < children_count; i++) {
         int child_pid = children[i];
-        print_children_recursive(child_pid, indent + 4);
+        print_children_recursive(child_pid, indent + 2);
     }
 
 }
 
 static bool builtin_ps(size_t argc, const char **args) {
-    (void) argc;
+
     (void) args;
-    print_children_recursive(0, 0);
+    if (argc != 1)
+        return false;
+
+    printf("\033eProcesses:\033r\n");
+    print_children_recursive(0, 2);
+
+    printf("\033eMemory:\033r\n");
+    unsigned int capacity;
+    unsigned int used;
+    system_memory_info(&capacity, &used);
+    printf("  Usage: %d / %d Kio\n", used / 1024, capacity / 1024);
+
     return true;
+
 }
 
 
 static bool builtin_exit(size_t argc, const char **args) {
-    (void) argc;
+    
     (void) args;
-    cons_echo(0);
-    running = false;
+    if (argc != 1)
+        return false;
+
+    system_power_off();
     return true;
+    
 }
 
 
@@ -215,25 +231,38 @@ static bool builtin_echo(size_t argc, const char **args) {
 int test_run(int n);
 
 static int test_wrapper(void *arg) {
-	(void) arg;
-	for (int i = 1; i <= 20; i++) {
-		printf("== RUNNING TEST %d ==\n", i);
-		int ret = test_run(i);
-		if (ret != 0)
-			return ret;
-	}
-	printf("== TESTS COMPLETE ==\n");
-	return 0;
+
+    int index = (int) arg;
+
+    if (index == -1) {
+        for (int i = 1; i <= 20; i++) {
+            printf("\033e== RUNNING TEST %d ==\033r\n", i);
+            int ret = test_run(i);
+            if (ret != 0)
+                return ret;
+        }
+        printf("\033e== TESTS COMPLETE ==\033r\n");
+	    return 0;
+    } else {
+        return test_run(index);
+    }
+
 }
 
 static bool builtin_test(size_t argc, const char **args) {
 
-    (void) argc;
-    (void) args;
+    int index = -1;
+    if (argc == 2) {
+        index = strtoul(args[1], NULL, 10);
+        if (index < 1 || index > 20) {
+            return false;
+        }
+    } else if (argc != 1) {
+        return false;
+    }
 
-    int pid = start(test_wrapper, 4096, 128, "test_wrapper", NULL);
+    int pid = start(test_wrapper, 4096, 128, "test_wrapper", (void *) index);
     waitpid(pid, NULL);
-
 
     return true;
 

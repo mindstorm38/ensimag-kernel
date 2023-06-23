@@ -29,4 +29,7 @@ void cons_echo(int on);
 int cons_read(char *string, unsigned long length);
 void cons_write(const char *str, long size);
 
+int system_memory_info(unsigned int *capacity, unsigned int *used);
+void system_power_off(void);
+
 #endif

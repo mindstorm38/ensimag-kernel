@@ -108,3 +108,12 @@ void cons_echo(int on) {
 void console_putbytes(const char *s, int len) {
     cons_write(s, len);
 }
+
+
+int system_memory_info(unsigned int *capacity, unsigned int *used) {
+    return syscall2(SC_SYSTEM_MEMORY_INFO, (size_t) capacity, (size_t) used);
+}
+
+void system_power_off(void) {
+    syscall0(SC_SYSTEM_POWER_OFF);
+}
