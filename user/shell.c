@@ -17,6 +17,7 @@ static bool builtin_ps(size_t argc, const char **args);
 static bool builtin_exit(size_t argc, const char **args);
 static bool builtin_echo(size_t argc, const char **args);
 static bool builtin_test(size_t argc, const char **args);
+static bool builtin_time(size_t argc, const char **args);
 
 struct builtin {
     const char *name;
@@ -55,6 +56,12 @@ struct builtin builtins[] = {
         "[1-20]",
         "Run internal test suite.",
         builtin_test
+    },
+    {
+        "time",
+        "",
+        "Get current time since startup of the system.",
+        builtin_time
     },
     { 0 }
 };
@@ -187,8 +194,7 @@ static bool builtin_ps(size_t argc, const char **args) {
     print_children_recursive(0, 2);
 
     printf("\033eMemory:\033r\n");
-    unsigned int capacity;
-    unsigned int used;
+    unsigned int capacity, used;
     system_memory_info(&capacity, &used);
     printf("  Usage: %d / %d Kio\n", used / 1024, capacity / 1024);
 
@@ -265,5 +271,25 @@ static bool builtin_test(size_t argc, const char **args) {
     waitpid(pid, NULL);
 
     return true;
+
+}
+
+static bool builtin_time(size_t argc, const char **args) {
+
+    (void) args;
+    if (argc != 1)
+        return false;
+
+    unsigned long quartz, ticks, seconds, minutes;
+    clock_settings(&quartz, &ticks);
+    seconds = current_clock() / (quartz / ticks);
+
+    minutes = seconds / 60;
+    seconds -= minutes * 60;
+
+    printf("\033eTime:\033r %02lu:%02lu\n", minutes, seconds);
+
+    return true;
+
 
 }

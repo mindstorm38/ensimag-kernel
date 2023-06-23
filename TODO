@@ -3,3 +3,4 @@
 3. Amélioration du processus idle pour le remettre dans le kernel mode (comme linux);
 4. Shutdown/reboot du system si idle est seul;
 5. Retravailler le workspace pour inclure shared et user au dossier kernel, pour mettre en commun le makefile;
+6. Restructurer les types entiers, à la linux, par exemple u8, u16, u32;
